@@ -1522,6 +1522,32 @@ export default function App() {
     await postToWeavy(shot, s1, s2, version);
   }
 
+  function handleContinuity() {
+    if (!shot) return;
+    // End Frame description becomes new Frame 1
+    const endDesc = shot.endFrame && shot.endFrame.compositionNote
+      ? shot.endFrame.compositionNote
+      : frame2;
+    setFrame1(endDesc);
+    setFrame2("");
+    // Clear previous output
+    setShot(null);
+    setStartImg(null);
+    setEndImg(null);
+    setStartErr(null);
+    setEndErr(null);
+    setGenError(null);
+    setVersion(1);
+    setWeavyStatus("idle");
+    setShowWeavyPanel(false);
+    setWeavyAppUid(null);
+    setWeavyMessages([]);
+    setThreadUrl(null);
+    setFeedbackFound(false);
+    // Scroll left panel to Frame 2
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   const canGenerate = !busy && bible.trim().length > 40 && frame1.trim().length > 20 && frame2.trim().length > 20 && !!claudeKey.trim();
 
   return (
@@ -1574,6 +1600,15 @@ export default function App() {
           <ShotAssets environment={environment} setEnvironment={setEnvironment} characters={characters} setCharacters={setCharacters} objects={objects} setObjects={setObjects} assetTab={assetTab} setAssetTab={setAssetTab} assetImages={assetImages} setAssetImages={setAssetImages} />
           <Divider />
           <div style={{ display:"grid", gap:12 }}>
+            {endImg && !shot && (
+              <div style={{ padding:"10px 13px", borderRadius:8, border:"1px solid rgba(200,160,80,.25)", background:"rgba(200,160,80,.06)", display:"flex", alignItems:"center", gap:10 }}>
+                <img src={endImg} alt="" style={{ width:48, height:28, objectFit:"cover", borderRadius:4, border:"1px solid rgba(200,160,80,.3)", flexShrink:0 }} />
+                <div>
+                  <div style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color:"rgba(200,160,80,.9)" }}>Continuing from previous shot</div>
+                  <div style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(232,224,212,.4)", fontStyle:"italic", marginTop:2 }}>End frame carried forward as Frame 1 — write Frame 2 to continue</div>
+                </div>
+              </div>
+            )}
             <FrameInput number={1} label="Frame 1 — Start" value={frame1} onChange={setFrame1} placeholder="Framing, camera, hero element, emotional tone, subject position and action state at the START…" />
             <FrameInput number={2} label="Frame 2 — End" value={frame2} onChange={setFrame2} placeholder="Same camera (or state if it moves), same hero element, emotional resolution, subject position and action state at the END…" />
           </div>
@@ -1650,6 +1685,12 @@ export default function App() {
                     {!busy && previewAvailable && <button onClick={() => handleRerender("preview")} style={{ background:"transparent", border:"1px solid rgba(200,160,80,.2)", borderRadius:6, color:"rgba(200,160,80,.55)", padding:"6px 12px", fontSize:11, letterSpacing:".1em", textTransform:"uppercase", cursor:"pointer", fontFamily:"sans-serif" }}>👁 Re-preview</button>}
                     {weavyStatus==="ok" && !showWeavyPanel && <button onClick={() => setShowWeavyPanel(true)} style={{ background:"rgba(80,180,120,.1)", border:"1px solid rgba(80,180,120,.25)", borderRadius:6, color:"rgba(80,180,120,.8)", padding:"6px 12px", fontSize:11, letterSpacing:".1em", textTransform:"uppercase", cursor:"pointer", fontFamily:"sans-serif" }}>💬 Review Thread</button>}
                     {weavyStatus==="error" && <span style={{ fontSize:11, color:"rgba(220,100,100,.55)", fontFamily:"sans-serif" }}>Weavy post failed</span>}
+                    {!busy && shot && endImg && (
+                      <button onClick={handleContinuity}
+                        style={{ background:"rgba(200,160,80,.12)", border:"1px solid rgba(200,160,80,.4)", borderRadius:6, color:"#c8a050", padding:"6px 14px", fontSize:11, letterSpacing:".1em", textTransform:"uppercase", cursor:"pointer", fontFamily:"sans-serif", fontWeight:700, display:"flex", alignItems:"center", gap:6 }}>
+                        ➜ Continue to Shot {log.length + 1}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
