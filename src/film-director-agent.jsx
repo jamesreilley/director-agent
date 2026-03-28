@@ -226,6 +226,12 @@ async function comfyRenderFrame(serverUrl, workflow, positivePrompt, negativePro
 // PREVIEW RENDERERS (NanoBanana / Flux) — for quick iteration
 // ─────────────────────────────────────────────────────────────────────────────
 const PREVIEW_PROVIDERS = {
+  gemini: {
+    label: "Google AI Studio", icon: "✦",
+    models: [
+      { id: "gemini-2.0-flash-preview-image-generation", label: "Gemini 2.0 Flash", desc: "Fast, high quality" },
+    ],
+  },
   nanobanana: {
     label: "NanoBanana", icon: "🍌",
     models: [
@@ -310,6 +316,41 @@ async function falUpload(apiKey, file) {
 // ─────────────────────────────────────────────────────────────────────────────
 // WEAVY
 // ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GOOGLE AI STUDIO — Gemini image generation
+// ─────────────────────────────────────────────────────────────────────────────
+async function geminiGenerateImage(apiKey, prompt, aspectRatio) {
+  const aspectMap = {
+    landscape_16_9: "16:9",
+    landscape_21_9: "21:9",
+    landscape_4_3:  "4:3",
+  };
+  const ar = aspectMap[aspectRatio] || "16:9";
+  const fullPrompt = `${prompt} --aspect_ratio ${ar}`;
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: fullPrompt }] }],
+        generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+      }),
+    }
+  );
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  const parts = data.candidates?.[0]?.content?.parts || [];
+  for (const part of parts) {
+    if (part.inlineData?.mimeType?.startsWith("image/")) {
+      return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+    }
+  }
+  throw new Error("Gemini: no image in response");
+}
+
 async function weavyUpsertApp(envUrl, apiKey, uid, name) {
   const res = await fetch(`${envUrl}/api/apps`, {
     method: "POST",
@@ -870,10 +911,11 @@ export default function App() {
     comfyWorkflow: "",
     ratio:         "landscape_16_9",
     // Preview
-    previewProvider: "nanobanana",
+    previewProvider: "gemini",
     nbModel:         "nano-banana-2",
     falModel:        "fal-ai/flux/dev",
-    nbKey:           "",
+    geminiKey:       "",
+    nbKey:           ",
     falKey:          "",
     // Weavy
     weavyUrl: "",
@@ -914,13 +956,13 @@ export default function App() {
   const {
     comfyUrl, comfyModel, comfySampler, comfySteps, comfyCfg,
     comfyWidth, comfyHeight, comfyWorkflow,
-    ratio, previewProvider, nbModel, falModel, nbKey, falKey,
+    ratio, previewProvider, nbModel, falModel, geminiKey, nbKey, falKey,
     weavyUrl, weavyKey,
   } = settings;
 
   const comfyConfigured  = !!comfyUrl.trim();
   const weavyConfigured  = !!(weavyUrl.trim() && weavyKey.trim());
-  const previewKey       = previewProvider === "nanobanana" ? nbKey : falKey;
+  const previewKey       = previewProvider === "gemini" ? geminiKey : previewProvider === "nanobanana" ? nbKey : falKey;
   const previewAvailable = !!previewKey.trim();
   const busy             = genBusy || renderBusy;
 
@@ -998,7 +1040,9 @@ export default function App() {
     const renderFrame = async(frame, setImg, setLoad, setMsg, setErr) => {
       try {
         let url;
-        if (previewProvider==="nanobanana") {
+        if (previewProvider==="gemini") {
+          url = await geminiGenerateImage(geminiKey, frame.prompt, ratio);
+        } else if (previewProvider==="nanobanana") {
           url = await nbGenerate(nbKey, nbModel, frame.prompt, frame.negativePrompt, ratio, refUrls.length?refUrls:undefined);
         } else {
           url = await falText2Img(falKey, falModel, frame.prompt, frame.negativePrompt, ratio);
