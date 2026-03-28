@@ -392,6 +392,7 @@ const css = `
   @keyframes fadeIn  { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
   @keyframes pulse   { 0%,100%{opacity:.3} 50%{opacity:.85} }
   @keyframes slideIn { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+  @keyframes shimmer { 0% { left:-100%; } 100% { left:200%; } }
   * { box-sizing:border-box; margin:0; padding:0; }
   body { background:#09090a; }
   textarea, input, select { box-sizing:border-box; }
@@ -1028,11 +1029,25 @@ export default function App() {
     const userMsg = `VISUAL BIBLE:\n${bible}\n\n---\n\nFRAME 1 — START FRAME:\n${frame1}\n\n---\n\nFRAME 2 — END FRAME:\n${frame2}\n\n---\n\nREFERENCES: ${refContext}${feedback?`\n\n---\n\nDIRECTOR FEEDBACK TO APPLY:\n${feedback}`:""}\n\nSHOT LOG:\n${log.length?log.map((s,i)=>`#${i+1}: ${s.shotSummary}`).join("\n"):"No previous shots."}`;
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method:"POST", headers:{"Content-Type":"application/json", "x-api-key": claudeKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true"},
-      body: JSON.stringify({ model:"claude-opus-4-6", max_tokens:4000, system:SYSTEM_PROMPT, messages:[{role:"user",content:userMsg}] }),
+      body: JSON.stringify({ model:"claude-opus-4-6", max_tokens:8000, system:SYSTEM_PROMPT, messages:[{role:"user",content:userMsg}] }),
     });
     const data = await res.json();
     const txt = data.content?.map(b=>b.text||"").join("")||"";
-    return JSON.parse(txt.replace(/```json|```/g,"").trim());
+    const clean = txt.replace(/```json|```/g,"").trim();
+    try {
+      return JSON.parse(clean);
+    } catch(parseErr) {
+      // Repair truncated JSON
+      console.warn("JSON truncated:", parseErr.message, "\nLength:", clean.length);
+      const opens  = (clean.match(/{/g)||[]).length;
+      const closes = (clean.match(/}/g)||[]).length;
+      const needed = Math.max(0, opens - closes);
+      try {
+        return JSON.parse(clean + "}".repeat(needed));
+      } catch(e2) {
+        throw new Error("Response too long — simplify your shot descriptions and try again.");
+      }
+    }
   }
 
   // ── Render via ComfyUI ────────────────────────────────────────────────────
@@ -1282,6 +1297,26 @@ export default function App() {
                 {!bible.trim()?"Add your Visual Bible to continue":!frame1.trim()?"Describe Frame 1 to continue":!frame2.trim()?"Describe Frame 2 to continue":""}
               </p>
             )}
+
+            {busy && (
+              <div style={{ borderRadius:8, border:"1px solid rgba(200,160,80,.2)", background:"rgba(200,160,80,.06)", overflow:"hidden" }}>
+                <div style={{ height:2, background:"rgba(200,160,80,.12)", position:"relative", overflow:"hidden" }}>
+                  <div style={{ position:"absolute", top:0, left:"-100%", width:"60%", height:"100%", background:"linear-gradient(90deg, transparent, #c8a050, transparent)", animation:"shimmer 1.4s ease infinite" }} />
+                </div>
+                <div style={{ padding:"10px 13px", display:"flex", alignItems:"center", gap:10 }}>
+                  <Spin />
+                  <div>
+                    <div style={{ fontSize:11, color:"#c8a050", fontFamily:"sans-serif", fontWeight:700 }}>
+                      {genBusy ? "Claude is writing your prompts…" : "Rendering frames…"}
+                    </div>
+                    <div style={{ fontSize:9, color:"rgba(232,224,212,.35)", fontFamily:"sans-serif", marginTop:2 }}>
+                      {genBusy ? "Applying Visual Bible · Checking compliance · Building frame pair" : "Generating via " + (activeRenderMode === "comfy" ? "ComfyUI" : (PREVIEW_PROVIDERS[settings.previewProvider]?.label || "preview")) + " — this may take 20–60 seconds"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {genError && <div style={{ padding:"9px 12px", background:"rgba(180,60,60,.08)", border:"1px solid rgba(180,60,60,.16)", borderRadius:6, fontSize:11, color:"#e08080", fontFamily:"sans-serif" }}>{genError}</div>}
           </div>
         </div>
@@ -1757,6 +1792,7 @@ const css = `
   @keyframes fadeIn  { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
   @keyframes pulse   { 0%,100%{opacity:.3} 50%{opacity:.85} }
   @keyframes slideIn { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+  @keyframes shimmer { 0% { left:-100%; } 100% { left:200%; } }
   * { box-sizing:border-box; margin:0; padding:0; }
   body { background:#09090a; }
   textarea, input, select { box-sizing:border-box; }
@@ -2393,11 +2429,25 @@ export default function App() {
     const userMsg = `VISUAL BIBLE:\n${bible}\n\n---\n\nFRAME 1 — START FRAME:\n${frame1}\n\n---\n\nFRAME 2 — END FRAME:\n${frame2}\n\n---\n\nREFERENCES: ${refContext}${feedback?`\n\n---\n\nDIRECTOR FEEDBACK TO APPLY:\n${feedback}`:""}\n\nSHOT LOG:\n${log.length?log.map((s,i)=>`#${i+1}: ${s.shotSummary}`).join("\n"):"No previous shots."}`;
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method:"POST", headers:{"Content-Type":"application/json", "x-api-key": claudeKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true"},
-      body: JSON.stringify({ model:"claude-opus-4-6", max_tokens:4000, system:SYSTEM_PROMPT, messages:[{role:"user",content:userMsg}] }),
+      body: JSON.stringify({ model:"claude-opus-4-6", max_tokens:8000, system:SYSTEM_PROMPT, messages:[{role:"user",content:userMsg}] }),
     });
     const data = await res.json();
     const txt = data.content?.map(b=>b.text||"").join("")||"";
-    return JSON.parse(txt.replace(/```json|```/g,"").trim());
+    const clean = txt.replace(/```json|```/g,"").trim();
+    try {
+      return JSON.parse(clean);
+    } catch(parseErr) {
+      // Repair truncated JSON
+      console.warn("JSON truncated:", parseErr.message, "\nLength:", clean.length);
+      const opens  = (clean.match(/{/g)||[]).length;
+      const closes = (clean.match(/}/g)||[]).length;
+      const needed = Math.max(0, opens - closes);
+      try {
+        return JSON.parse(clean + "}".repeat(needed));
+      } catch(e2) {
+        throw new Error("Response too long — simplify your shot descriptions and try again.");
+      }
+    }
   }
 
   // ── Render via ComfyUI ────────────────────────────────────────────────────
@@ -2647,6 +2697,26 @@ export default function App() {
                 {!bible.trim()?"Add your Visual Bible to continue":!frame1.trim()?"Describe Frame 1 to continue":!frame2.trim()?"Describe Frame 2 to continue":""}
               </p>
             )}
+
+            {busy && (
+              <div style={{ borderRadius:8, border:"1px solid rgba(200,160,80,.2)", background:"rgba(200,160,80,.06)", overflow:"hidden" }}>
+                <div style={{ height:2, background:"rgba(200,160,80,.12)", position:"relative", overflow:"hidden" }}>
+                  <div style={{ position:"absolute", top:0, left:"-100%", width:"60%", height:"100%", background:"linear-gradient(90deg, transparent, #c8a050, transparent)", animation:"shimmer 1.4s ease infinite" }} />
+                </div>
+                <div style={{ padding:"10px 13px", display:"flex", alignItems:"center", gap:10 }}>
+                  <Spin />
+                  <div>
+                    <div style={{ fontSize:11, color:"#c8a050", fontFamily:"sans-serif", fontWeight:700 }}>
+                      {genBusy ? "Claude is writing your prompts…" : "Rendering frames…"}
+                    </div>
+                    <div style={{ fontSize:9, color:"rgba(232,224,212,.35)", fontFamily:"sans-serif", marginTop:2 }}>
+                      {genBusy ? "Applying Visual Bible · Checking compliance · Building frame pair" : "Generating via " + (activeRenderMode === "comfy" ? "ComfyUI" : (PREVIEW_PROVIDERS[settings.previewProvider]?.label || "preview")) + " — this may take 20–60 seconds"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {genError && <div style={{ padding:"9px 12px", background:"rgba(180,60,60,.08)", border:"1px solid rgba(180,60,60,.16)", borderRadius:6, fontSize:11, color:"#e08080", fontFamily:"sans-serif" }}>{genError}</div>}
           </div>
         </div>
