@@ -948,7 +948,7 @@ export default function App() {
     const userMsg = `VISUAL BIBLE:\n${bible}\n\n---\n\nFRAME 1 — START FRAME:\n${frame1}\n\n---\n\nFRAME 2 — END FRAME:\n${frame2}\n\n---\n\nREFERENCES: ${refContext}${feedback?`\n\n---\n\nDIRECTOR FEEDBACK TO APPLY:\n${feedback}`:""}\n\nSHOT LOG:\n${log.length?log.map((s,i)=>`#${i+1}: ${s.shotSummary}`).join("\n"):"No previous shots."}`;
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1400, system:SYSTEM_PROMPT, messages:[{role:"user",content:userMsg}] }),
+      body: JSON.stringify({ model:"claude-opus-4-6", max_tokens:1400, system:SYSTEM_PROMPT, messages:[{role:"user",content:userMsg}] }),
     });
     const data = await res.json();
     const txt = data.content?.map(b=>b.text||"").join("")||"";
