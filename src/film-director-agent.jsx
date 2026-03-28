@@ -9,10 +9,16 @@ Your output — a START FRAME and END FRAME — will be fed directly into a vide
 
 You receive:
 1. VISUAL BIBLE — the universe rulebook governing every material, surface, character, and environment.
-2. CAMERA LOCK — focal length, height, angle, and movement. This is immutable across BOTH frames. Override any conflicting camera description in the frame inputs.
-3. FRAME 1 DESCRIPTION — the director's complete instruction for the start frame.
-4. FRAME 2 DESCRIPTION — the director's complete instruction for the end frame.
-5. DIRECTOR FEEDBACK (optional) — apply this feedback. Keep everything not criticised. Only change what feedback addresses.
+2. SHOT ASSETS — locked identity references for this shot. These are non-negotiable:
+   - ENVIRONMENT SHEET: exact setting description — reproduce faithfully, no improvisation
+   - CHARACTER SHEETS: exact identity for each named character — appearance, costume, expression range, distinctive features must be reproduced exactly as described
+   - OBJECT SHEETS: exact description of hero props — scale, appearance, behaviour must be reproduced exactly
+3. CAMERA LOCK — focal length, height, angle, and movement. Immutable across BOTH frames.
+4. FRAME 1 DESCRIPTION — the director's complete instruction for the start frame.
+5. FRAME 2 DESCRIPTION — the director's complete instruction for the end frame.
+6. DIRECTOR FEEDBACK (optional) — apply this feedback. Keep everything not criticised. Only change what feedback addresses.
+
+ASSET ENFORCEMENT RULE: Any character, object, or environment described in SHOT ASSETS overrides any conflicting description in the frame inputs. Asset descriptions are locked — do not improvise, embellish, or alter them. If a frame description contradicts an asset sheet, the asset sheet wins.
 
 ━━━ VIDEO INTERPOLATION — NON-NEGOTIABLE ━━━
 
@@ -629,6 +635,191 @@ function WeavyPanel({ shot, threadUrl, messages, onCheckFeedback, onClose, check
 
 
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHOT ASSETS — tabbed reference sheets for environment, characters, objects
+// ─────────────────────────────────────────────────────────────────────────────
+function AssetImageUpload({ assetKey, assetImages, setAssetImages, label }) {
+  const inputRef = useRef();
+  const img = assetImages[assetKey];
+
+  function handleFile(file) {
+    if (!file || !file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      const base64 = dataUrl.split(",")[1];
+      setAssetImages(p => ({ ...p, [assetKey]: { preview: dataUrl, base64, mimeType: file.type } }));
+    };
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <div>
+      <div style={{ fontSize:10, letterSpacing:".1em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(200,160,80,.5)", marginBottom:6 }}>{label} Reference Image</div>
+      {img ? (
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <img src={img.preview} alt="" style={{ width:64, height:64, objectFit:"cover", borderRadius:7, border:"1px solid rgba(200,160,80,.3)", display:"block" }} />
+          <div>
+            <div style={{ fontSize:10, color:"rgba(80,180,120,.7)", fontFamily:"sans-serif", marginBottom:4 }}>✓ Reference uploaded</div>
+            <button onClick={() => setAssetImages(p => { const n={...p}; delete n[assetKey]; return n; })}
+              style={{ fontSize:10, color:"rgba(220,100,100,.5)", background:"none", border:"none", cursor:"pointer", fontFamily:"sans-serif", padding:0 }}>Remove</button>
+          </div>
+        </div>
+      ) : (
+        <div onClick={() => inputRef.current?.click()}
+          style={{ borderRadius:7, border:"1px dashed rgba(200,160,80,.2)", background:"rgba(200,160,80,.03)", padding:"10px 13px", cursor:"pointer", display:"flex", alignItems:"center", gap:9, transition:"all .2s" }}>
+          <span style={{ fontSize:18, opacity:.4 }}>📎</span>
+          <div style={{ fontSize:11, color:"rgba(232,224,212,.4)", fontFamily:"sans-serif", fontStyle:"italic" }}>Upload reference image</div>
+        </div>
+      )}
+      <input ref={inputRef} type="file" accept="image/*" style={{ display:"none" }} onChange={e => { handleFile(e.target.files[0]); e.target.value=""; }} />
+    </div>
+  );
+}
+
+function AssetField({ label, value, onChange, placeholder, multiline }) {
+  const ref = useRef();
+  useEffect(() => {
+    if (multiline && ref.current) { ref.current.style.height="auto"; ref.current.style.height=ref.current.scrollHeight+"px"; }
+  }, [value, multiline]);
+  const style = { width:"100%", background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.07)", borderRadius:6, color:"#e8e0d4", fontSize:12, padding:"8px 11px", fontFamily:"Georgia,serif", outline:"none", resize:"none", lineHeight:1.6, display:"block" };
+  return (
+    <div>
+      <div style={{ fontSize:10, letterSpacing:".1em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(200,160,80,.5)", marginBottom:5 }}>{label}</div>
+      {multiline
+        ? <textarea ref={ref} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{...style, minHeight:60, overflow:"hidden"}}
+            onFocus={e=>e.target.style.borderColor="rgba(200,160,80,.28)"} onBlur={e=>e.target.style.borderColor="rgba(255,255,255,.07)"} />
+        : <input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={style}
+            onFocus={e=>e.target.style.borderColor="rgba(200,160,80,.28)"} onBlur={e=>e.target.style.borderColor="rgba(255,255,255,.07)"} />
+      }
+    </div>
+  );
+}
+
+function ShotAssets({ environment, setEnvironment, characters, setCharacters, objects, setObjects, assetTab, setAssetTab, assetImages, setAssetImages }) {
+  const tabs = [
+    { id:"environment", label:"Environment", icon:"🌿" },
+    { id:"characters",  label:"Characters",  icon:"👤" },
+    { id:"objects",     label:"Objects",      icon:"📦" },
+  ];
+
+  const updEnv = (k,v) => setEnvironment(p=>({...p,[k]:v}));
+  const updChar = (i,k,v) => setCharacters(p=>p.map((c,idx)=>idx===i?{...c,[k]:v}:c));
+  const updObj  = (i,k,v) => setObjects(p=>p.map((o,idx)=>idx===i?{...o,[k]:v}:o));
+
+  const addChar = () => setCharacters(p=>[...p,{name:"",role:"",appearance:"",costume:"",expression:"",distinctive:"",notes:""}]);
+  const addObj  = () => setObjects(p=>[...p,{name:"",description:"",scale:"",behaviour:"",notes:""}]);
+  const removeChar = i => setCharacters(p=>p.filter((_,idx)=>idx!==i));
+  const removeObj  = i => setObjects(p=>p.filter((_,idx)=>idx!==i));
+
+  const totalAssets = (environment.name||environment.setting?1:0) + characters.filter(c=>c.name||c.appearance).length + objects.filter(o=>o.name||o.description).length;
+
+  return (
+    <div style={{ borderRadius:9, border:"1px solid rgba(200,160,80,.2)", overflow:"hidden", background:"rgba(200,160,80,.02)" }}>
+      {/* Header */}
+      <div style={{ padding:"10px 14px", background:"rgba(200,160,80,.07)", borderBottom:"1px solid rgba(200,160,80,.15)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{ fontSize:14 }}>🗂</span>
+          <div>
+            <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:"rgba(200,160,80,.9)" }}>Shot Assets</div>
+            <div style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(232,224,212,.38)", fontStyle:"italic", marginTop:1 }}>Identity references — locked across every frame</div>
+          </div>
+        </div>
+        {totalAssets > 0 && <span style={{ fontSize:10, padding:"2px 8px", background:"rgba(200,160,80,.15)", borderRadius:10, color:"rgba(200,160,80,.8)", fontFamily:"sans-serif" }}>{totalAssets} asset{totalAssets>1?"s":""}</span>}
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display:"flex", borderBottom:"1px solid rgba(255,255,255,.07)" }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setAssetTab(t.id)}
+            style={{ flex:1, padding:"9px 6px", background:assetTab===t.id?"rgba(200,160,80,.09)":"transparent", border:"none", borderBottom:assetTab===t.id?"2px solid #c8a050":"2px solid transparent", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:5, transition:"all .15s" }}>
+            <span style={{ fontSize:13 }}>{t.icon}</span>
+            <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color:assetTab===t.id?"#c8a050":"rgba(232,224,212,.45)" }}>{t.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div style={{ padding:"14px", display:"grid", gap:14 }}>
+
+        {/* ── ENVIRONMENT ── */}
+        {assetTab === "environment" && (
+          <>
+            <AssetField label="Location Name" value={environment.name} onChange={v=>updEnv("name",v)} placeholder="e.g. The Woolwich Garden" />
+            <AssetField label="Setting Description" value={environment.setting} onChange={v=>updEnv("setting",v)} placeholder="Describe the environment in director's terms — no material language (bible handles that)" multiline />
+            <AssetField label="Time of Day / Lighting Moment" value={environment.time} onChange={v=>updEnv("time",v)} placeholder="e.g. Late afternoon, golden hour, overcast midday" />
+            <AssetField label="Emotional Atmosphere" value={environment.mood} onChange={v=>updEnv("mood",v)} placeholder="e.g. Warm, intimate, slightly melancholic" />
+            <AssetField label="Additional Notes" value={environment.notes} onChange={v=>updEnv("notes",v)} placeholder="Anything else Claude must know about this environment" multiline />
+            <AssetImageUpload assetKey="environment" assetImages={assetImages} setAssetImages={setAssetImages} label="Environment" />
+          </>
+        )}
+
+        {/* ── CHARACTERS ── */}
+        {assetTab === "characters" && (
+          <>
+            {characters.length === 0 && (
+              <div style={{ textAlign:"center", padding:"12px 0", color:"rgba(232,224,212,.3)", fontSize:12, fontFamily:"sans-serif", fontStyle:"italic" }}>No characters yet</div>
+            )}
+            {characters.map((c,i) => (
+              <div key={i} style={{ borderRadius:8, border:"1px solid rgba(255,255,255,.07)", overflow:"hidden" }}>
+                <div style={{ padding:"8px 12px", background:"rgba(80,160,220,.06)", borderBottom:"1px solid rgba(80,160,220,.12)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                  <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color:"rgba(80,160,220,.8)" }}>{c.name || `Character ${i+1}`}</span>
+                  <button onClick={()=>removeChar(i)} style={{ fontSize:10, color:"rgba(220,100,100,.5)", background:"none", border:"none", cursor:"pointer", fontFamily:"sans-serif" }}>Remove</button>
+                </div>
+                <div style={{ padding:"12px", display:"grid", gap:11 }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                    <AssetField label="Name" value={c.name} onChange={v=>updChar(i,"name",v)} placeholder="Character name" />
+                    <AssetField label="Role" value={c.role} onChange={v=>updChar(i,"role",v)} placeholder="e.g. Protagonist, child" />
+                  </div>
+                  <AssetField label="Appearance" value={c.appearance} onChange={v=>updChar(i,"appearance",v)} placeholder="Physical description — what the character looks like" multiline />
+                  <AssetField label="Costume" value={c.costume} onChange={v=>updChar(i,"costume",v)} placeholder="What they wear — colours, silhouette, key details" multiline />
+                  <AssetField label="Expression Range" value={c.expression} onChange={v=>updChar(i,"expression",v)} placeholder="e.g. Wide embroidered smile, bead-like dark eyes, soft features" />
+                  <AssetField label="Distinctive Features" value={c.distinctive} onChange={v=>updChar(i,"distinctive",v)} placeholder="Anything unique that must appear in every frame" />
+                  <AssetField label="Additional Notes" value={c.notes} onChange={v=>updChar(i,"notes",v)} placeholder="Anything else Claude must lock" multiline />
+                  <AssetImageUpload assetKey={`char_${i}`} assetImages={assetImages} setAssetImages={setAssetImages} label="Character" />
+                </div>
+              </div>
+            ))}
+            <button onClick={addChar} style={{ width:"100%", padding:"10px", borderRadius:7, border:"1px dashed rgba(80,160,220,.3)", background:"rgba(80,160,220,.05)", color:"rgba(80,160,220,.7)", fontSize:11, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", letterSpacing:".1em", textTransform:"uppercase" }}>
+              + Add Character
+            </button>
+          </>
+        )}
+
+        {/* ── OBJECTS ── */}
+        {assetTab === "objects" && (
+          <>
+            {objects.length === 0 && (
+              <div style={{ textAlign:"center", padding:"12px 0", color:"rgba(232,224,212,.3)", fontSize:12, fontFamily:"sans-serif", fontStyle:"italic" }}>No objects yet</div>
+            )}
+            {objects.map((o,i) => (
+              <div key={i} style={{ borderRadius:8, border:"1px solid rgba(255,255,255,.07)", overflow:"hidden" }}>
+                <div style={{ padding:"8px 12px", background:"rgba(210,120,55,.06)", borderBottom:"1px solid rgba(210,120,55,.12)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                  <span style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color:"rgba(210,120,55,.8)" }}>{o.name || `Object ${i+1}`}</span>
+                  <button onClick={()=>removeObj(i)} style={{ fontSize:10, color:"rgba(220,100,100,.5)", background:"none", border:"none", cursor:"pointer", fontFamily:"sans-serif" }}>Remove</button>
+                </div>
+                <div style={{ padding:"12px", display:"grid", gap:11 }}>
+                  <AssetField label="Name" value={o.name} onChange={v=>updObj(i,"name",v)} placeholder="Object name" />
+                  <AssetField label="Description" value={o.description} onChange={v=>updObj(i,"description",v)} placeholder="What it looks like — no material language (bible handles that)" multiline />
+                  <AssetField label="Scale Relative to Character" value={o.scale} onChange={v=>updObj(i,"scale",v)} placeholder="e.g. Swing seat at knee height when standing, ropes reach to crossbar" />
+                  <AssetField label="Behaviour in Motion" value={o.behaviour} onChange={v=>updObj(i,"behaviour",v)} placeholder="How it moves, hangs, or responds in the shot" />
+                  <AssetField label="Additional Notes" value={o.notes} onChange={v=>updObj(i,"notes",v)} placeholder="Anything else Claude must lock" multiline />
+                  <AssetImageUpload assetKey={`obj_${i}`} assetImages={assetImages} setAssetImages={setAssetImages} label="Object" />
+                </div>
+              </div>
+            ))}
+            <button onClick={addObj} style={{ width:"100%", padding:"10px", borderRadius:7, border:"1px dashed rgba(210,120,55,.3)", background:"rgba(210,120,55,.05)", color:"rgba(210,120,55,.7)", fontSize:11, fontFamily:"sans-serif", fontWeight:700, cursor:"pointer", letterSpacing:".1em", textTransform:"uppercase" }}>
+              + Add Object
+            </button>
+          </>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CROP LOCK — crops both frames to identical dimensions from centre
 // Ensures any camera drift is neutralised at the pixel level
@@ -1084,6 +1275,30 @@ export default function App() {
   useEffect(() => { try { localStorage.setItem("da_frame1", frame1); } catch(e) {} }, [frame1]);
   useEffect(() => { try { localStorage.setItem("da_frame2", frame2); } catch(e) {} }, [frame2]);
 
+  // ── Shot Assets ──
+  const defaultEnvironment = { name:"", setting:"", time:"", mood:"", notes:"" };
+  const defaultCharacter   = { name:"", role:"", appearance:"", costume:"", expression:"", distinctive:"", notes:"" };
+  const defaultObject      = { name:"", description:"", scale:"", behaviour:"", notes:"" };
+
+  const [environment, setEnvironment] = useState(() => {
+    try { const s = localStorage.getItem("da_environment"); return s ? JSON.parse(s) : defaultEnvironment; }
+    catch(e) { return defaultEnvironment; }
+  });
+  const [characters, setCharacters] = useState(() => {
+    try { const s = localStorage.getItem("da_characters"); return s ? JSON.parse(s) : []; }
+    catch(e) { return []; }
+  });
+  const [objects, setObjects] = useState(() => {
+    try { const s = localStorage.getItem("da_objects"); return s ? JSON.parse(s) : []; }
+    catch(e) { return []; }
+  });
+  const [assetTab, setAssetTab] = useState("environment");
+  const [assetImages, setAssetImages] = useState({}); // key: asset id, value: { preview, base64, mimeType }
+
+  useEffect(() => { try { localStorage.setItem("da_environment", JSON.stringify(environment)); } catch(e) {} }, [environment]);
+  useEffect(() => { try { localStorage.setItem("da_characters",  JSON.stringify(characters));  } catch(e) {} }, [characters]);
+  useEffect(() => { try { localStorage.setItem("da_objects",     JSON.stringify(objects));     } catch(e) {} }, [objects]);
+
   const [refs,   setRefs]   = useState([]);
   const [shot,   setShot]   = useState(null);
   const [startImg, setStartImg]   = useState(null);
@@ -1142,6 +1357,42 @@ export default function App() {
   async function buildPrompts(feedback = null) {
     if (!claudeKey.trim()) throw new Error("No Claude API key — add it in Settings");
     const refContext = refs.length ? `${refs.length} reference image${refs.length>1?"s":""} provided.` : "No reference images.";
+    // Compile asset brief from structured sheets
+    const buildAssetBrief = () => {
+      const lines = [];
+      // Environment
+      if (environment.name || environment.setting) {
+        lines.push("ENVIRONMENT SHEET:");
+        if (environment.name)    lines.push(`  Name: ${environment.name}`);
+        if (environment.setting) lines.push(`  Setting: ${environment.setting}`);
+        if (environment.time)    lines.push(`  Time of day / light: ${environment.time}`);
+        if (environment.mood)    lines.push(`  Mood: ${environment.mood}`);
+        if (environment.notes)   lines.push(`  Notes: ${environment.notes}`);
+      }
+      // Characters
+      characters.forEach((c, i) => {
+        if (!c.name && !c.appearance) return;
+        lines.push(`\nCHARACTER SHEET ${i+1}: ${c.name || "Unnamed"}`);
+        if (c.role)        lines.push(`  Role: ${c.role}`);
+        if (c.appearance)  lines.push(`  Appearance: ${c.appearance}`);
+        if (c.costume)     lines.push(`  Costume: ${c.costume}`);
+        if (c.expression)  lines.push(`  Expression range: ${c.expression}`);
+        if (c.distinctive) lines.push(`  Distinctive features: ${c.distinctive}`);
+        if (c.notes)       lines.push(`  Notes: ${c.notes}`);
+      });
+      // Objects
+      objects.forEach((o, i) => {
+        if (!o.name && !o.description) return;
+        lines.push(`\nOBJECT SHEET ${i+1}: ${o.name || "Unnamed"}`);
+        if (o.description) lines.push(`  Description: ${o.description}`);
+        if (o.scale)       lines.push(`  Scale: ${o.scale}`);
+        if (o.behaviour)   lines.push(`  Behaviour in motion: ${o.behaviour}`);
+        if (o.notes)       lines.push(`  Notes: ${o.notes}`);
+      });
+      return lines.join("\n");
+    };
+    const assetBrief = buildAssetBrief();
+
     const shotSeed = useSharedSeed
       ? (manualSeed.trim() ? parseInt(manualSeed.trim()) : Math.floor(Math.random() * 999999999))
       : Math.floor(Math.random() * 999999999);
@@ -1155,7 +1406,8 @@ export default function App() {
     const cameraSection = useCameraLock
       ? `\n\n---\n\nCAMERA LOCK (apply identically to both frames):\n${composedCamera}`
       : "";
-    const userMsg = `VISUAL BIBLE:\n${bible}${cameraSection}\n\n---\n\nFRAME 1 — START FRAME:\n${frame1}\n\n---\n\nFRAME 2 — END FRAME:\n${frame2}\n\n---\n\nSHARED SEED: ${shotSeed}\n\nREFERENCES: ${refContext}${feedback?`\n\n---\n\nDIRECTOR FEEDBACK:\n${feedback}`:""}\n\nSHOT LOG:\n${log.length ? log.map((s,i)=>`#${i+1}: ${s.shotSummary}`).join("\n") : "No previous shots."}`;
+    const assetSection = assetBrief.trim() ? `\n\n---\n\nSHOT ASSETS:\n${assetBrief}` : "";
+    const userMsg = `VISUAL BIBLE:\n${bible}${assetSection}${cameraSection}\n\n---\n\nFRAME 1 — START FRAME:\n${frame1}\n\n---\n\nFRAME 2 — END FRAME:\n${frame2}\n\n---\n\nSHARED SEED: ${shotSeed}\n\nREFERENCES: ${refContext}${feedback?`\n\n---\n\nDIRECTOR FEEDBACK:\n${feedback}`:""}\n\nSHOT LOG:\n${log.length ? log.map((s,i)=>`#${i+1}: ${s.shotSummary}`).join("\n") : "No previous shots."}`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -1460,6 +1712,17 @@ export default function App() {
             <FrameInput number={2} label="Frame 2 — End" value={frame2} onChange={setFrame2}
               placeholder="Same framing & camera (or state if it moves), same hero element details, emotional resolution, subject position and action state at the END…" />
           </div>
+
+          <Divider />
+
+          {/* ── Shot Assets ── */}
+          <ShotAssets
+            environment={environment} setEnvironment={setEnvironment}
+            characters={characters}   setCharacters={setCharacters}
+            objects={objects}         setObjects={setObjects}
+            assetTab={assetTab}       setAssetTab={setAssetTab}
+            assetImages={assetImages} setAssetImages={setAssetImages}
+          />
 
           <Divider />
 
