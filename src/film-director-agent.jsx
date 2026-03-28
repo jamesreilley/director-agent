@@ -149,7 +149,7 @@ async function comfyPoll(serverUrl, promptId) {
 const PREVIEW_PROVIDERS = {
   gemini: {
     label: "Google AI Studio", icon: "✦",
-    models: [{ id: "gemini-2.0-flash-preview-image-generation", label: "Gemini 2.0 Flash", desc: "Fast, high quality" }],
+    models: [{ id: "gemini-2.0-flash-exp-image-generation", label: "Gemini 2.0 Flash", desc: "Fast, high quality" }],
   },
   nanobanana: {
     label: "NanoBanana", icon: "🍌",
@@ -178,7 +178,7 @@ const ASPECT_RATIOS = [
 // ─────────────────────────────────────────────────────────────────────────────
 async function geminiGenerateImage(apiKey, prompt, aspectRatio) {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
