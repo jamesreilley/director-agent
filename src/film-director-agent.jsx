@@ -720,32 +720,29 @@ function Settings({ s, set, onClose }) {
             <div style={{ display:"grid", gap:12 }}>
               <div>
                 <SLabel>Server URL</SLabel>
-                <TextInput value={s.comfyUrl} onChange={v=>upd("comfyUrl",v)} placeholder="http://your-server:8188" />
-                <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:5 }}>Your remote ComfyUI server address</div>
+                <TextInput value={s.comfyUrl} onChange={v=>upd("comfyUrl",v)} placeholder="http://127.0.0.1:8188" />
+                <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:5 }}>ComfyUI Desktop default: http://127.0.0.1:8188</div>
               </div>
 
+              <div>
+                <SLabel>Model / Checkpoint</SLabel>
+                <TextInput value={s.comfyModel} onChange={v=>upd("comfyModel",v)} placeholder="FLUX1/flux1-dev-fp8.safetensors" />
+                <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:4 }}>Include subfolder — e.g. FLUX1/flux1-dev-fp8.safetensors</div>
+              </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                 <div>
-                  <SLabel>Model / Checkpoint</SLabel>
-                  <TextInput value={s.comfyModel} onChange={v=>upd("comfyModel",v)} placeholder="v1-5-pruned-emaonly.safetensors" />
-                </div>
-                <div>
-                  <SLabel>Sampler</SLabel>
-                  <select value={s.comfySampler} onChange={e=>upd("comfySampler",e.target.value)}
-                    style={{ width:"100%", background:"rgba(255,255,255,.04)", border:"1px solid rgba(255,255,255,.07)", borderRadius:6, color:"#e8e0d4", fontSize:12, padding:"9px 11px", outline:"none" }}>
-                    {["euler","euler_ancestral","dpm_2","dpm_2_ancestral","heun","lms","dpm_fast","dpm_adaptive","dpmpp_2s_ancestral","dpmpp_sde","dpmpp_2m","dpmpp_2m_sde","ddim","uni_pc"].map(s=><option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
                   <SLabel>Steps</SLabel>
-                  <input type="number" min={1} max={150} value={s.comfySteps} onChange={e=>upd("comfySteps",Number(e.target.value))}
+                  <input type="number" min={1} max={50} value={s.comfySteps} onChange={e=>upd("comfySteps",Number(e.target.value))}
                     style={{ width:"100%", background:"rgba(255,255,255,.04)", border:"1px solid rgba(255,255,255,.07)", borderRadius:6, color:"#e8e0d4", fontSize:12, padding:"9px 11px", outline:"none" }} />
                 </div>
                 <div>
-                  <SLabel>CFG Scale</SLabel>
-                  <input type="number" min={1} max={20} step={0.5} value={s.comfyCfg} onChange={e=>upd("comfyCfg",Number(e.target.value))}
+                  <SLabel>Guidance</SLabel>
+                  <input type="number" min={1} max={10} step={0.5} value={s.comfyGuidance||3.5} onChange={e=>upd("comfyGuidance",Number(e.target.value))}
                     style={{ width:"100%", background:"rgba(255,255,255,.04)", border:"1px solid rgba(255,255,255,.07)", borderRadius:6, color:"#e8e0d4", fontSize:12, padding:"9px 11px", outline:"none" }} />
                 </div>
+              </div>
+              <div style={{ padding:"9px 11px", background:"rgba(130,80,200,.08)", border:"1px solid rgba(130,80,200,.2)", borderRadius:7, fontSize:10, color:"rgba(180,130,255,.75)", fontFamily:"sans-serif", lineHeight:1.6 }}>
+                🎨 Flux.1 settings locked: CFG 1.0 · Sampler euler · Scheduler simple · FluxGuidance node
               </div>
 
               <div>
