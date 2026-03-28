@@ -559,11 +559,11 @@ function ShotAssets({ environment, setEnvironment, characters, setCharacters, ob
   const updEnv  = (k, v) => setEnvironment(p => ({ ...p, [k]: v }));
   const updChar = (i, k, v) => setCharacters(p => p.map((c, idx) => idx === i ? { ...c, [k]: v } : c));
   const updObj  = (i, k, v) => setObjects(p => p.map((o, idx) => idx === i ? { ...o, [k]: v } : o));
-  const addChar = () => setCharacters(p => [...p, { name:"", role:"", appearance:"", costume:"", expression:"", distinctive:"", notes:"" }]);
-  const addObj  = () => setObjects(p => [...p, { name:"", description:"", scale:"", behaviour:"", notes:"" }]);
+  const addChar = () => setCharacters(p => [...p, { name:"", appearance:"", identity:"" }]);
+  const addObj  = () => setObjects(p => [...p, { name:"", description:"", behaviour:"" }]);
   const rmChar  = i => setCharacters(p => p.filter((_, idx) => idx !== i));
   const rmObj   = i => setObjects(p => p.filter((_, idx) => idx !== i));
-  const totalAssets = ((environment.name || environment.setting) ? 1 : 0) + characters.filter(c => c.name || c.appearance).length + objects.filter(o => o.name || o.description).length;
+  const totalAssets = ((environment.setting || environment.atmosphere) ? 1 : 0) + characters.filter(c => c.name || c.appearance).length + objects.filter(o => o.name || o.description).length;
 
   return (
     <div style={{ borderRadius:9, border:"1px solid rgba(200,160,80,.2)", background:"rgba(200,160,80,.02)" }}>
@@ -589,11 +589,8 @@ function ShotAssets({ environment, setEnvironment, characters, setCharacters, ob
       <div style={{ padding:"14px", display:"grid", gap:14 }}>
         {assetTab === "environment" && (
           <>
-            <AssetField label="Location Name" value={environment.name} onChange={v => updEnv("name", v)} placeholder="e.g. The Woolwich Garden" />
-            <AssetField label="Setting Description" value={environment.setting} onChange={v => updEnv("setting", v)} placeholder="Describe the environment — no material language (bible handles that)" multiline />
-            <AssetField label="Time of Day / Lighting Moment" value={environment.time} onChange={v => updEnv("time", v)} placeholder="e.g. Late afternoon, golden hour" />
-            <AssetField label="Emotional Atmosphere" value={environment.mood} onChange={v => updEnv("mood", v)} placeholder="e.g. Warm, intimate, slightly melancholic" />
-            <AssetField label="Additional Notes" value={environment.notes} onChange={v => updEnv("notes", v)} placeholder="Anything else Claude must know" multiline />
+            <AssetField label="Setting" value={environment.setting} onChange={v => updEnv("setting", v)} placeholder="Location name, description, time of day — e.g. A sun-filled park on a warm afternoon, swing hanging from an old tree at the centre of a gently sloping lawn" multiline />
+            <AssetField label="Atmosphere" value={environment.atmosphere} onChange={v => updEnv("atmosphere", v)} placeholder="e.g. Warm, joyful, intimate — golden afternoon light, soft shadows" />
             <AssetImageUpload assetKey="environment" assetImages={assetImages} setAssetImages={setAssetImages} label="Environment" />
           </>
         )}
@@ -607,15 +604,9 @@ function ShotAssets({ environment, setEnvironment, characters, setCharacters, ob
                   <button onClick={() => rmChar(i)} style={{ fontSize:11, color:"rgba(220,100,100,.5)", background:"none", border:"none", cursor:"pointer", fontFamily:"sans-serif" }}>Remove</button>
                 </div>
                 <div style={{ padding:"12px", display:"grid", gap:11 }}>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-                    <AssetField label="Name" value={c.name} onChange={v => updChar(i, "name", v)} placeholder="Character name" />
-                    <AssetField label="Role" value={c.role} onChange={v => updChar(i, "role", v)} placeholder="e.g. Protagonist, child" />
-                  </div>
-                  <AssetField label="Appearance" value={c.appearance} onChange={v => updChar(i, "appearance", v)} placeholder="Physical description — what the character looks like" multiline />
-                  <AssetField label="Costume" value={c.costume} onChange={v => updChar(i, "costume", v)} placeholder="What they wear — colours, silhouette, key details" multiline />
-                  <AssetField label="Expression Range" value={c.expression} onChange={v => updChar(i, "expression", v)} placeholder="e.g. Wide smile, bead-like dark eyes, soft features" />
-                  <AssetField label="Distinctive Features" value={c.distinctive} onChange={v => updChar(i, "distinctive", v)} placeholder="Anything unique that must appear in every frame" />
-                  <AssetField label="Additional Notes" value={c.notes} onChange={v => updChar(i, "notes", v)} placeholder="Anything else Claude must lock" multiline />
+                  <AssetField label="Name" value={c.name} onChange={v => updChar(i, "name", v)} placeholder="Character name" />
+                  <AssetField label="Appearance & Costume" value={c.appearance} onChange={v => updChar(i, "appearance", v)} placeholder="Physical build, skin, hair colour and style, face construction — then costume: colours, silhouette, key garment details" multiline />
+                  <AssetField label="Identity Lock — never changes" value={c.identity} onChange={v => updChar(i, "identity", v)} placeholder="Expression range, distinctive features, anything that must be reproduced exactly in every frame — e.g. small blue bow, three buttons, bead-like dark eyes, rosy cheeks" multiline />
                   <AssetImageUpload assetKey={"char_" + i} assetImages={assetImages} setAssetImages={setAssetImages} label="Character" />
                 </div>
               </div>
@@ -636,10 +627,8 @@ function ShotAssets({ environment, setEnvironment, characters, setCharacters, ob
                 </div>
                 <div style={{ padding:"12px", display:"grid", gap:11 }}>
                   <AssetField label="Name" value={o.name} onChange={v => updObj(i, "name", v)} placeholder="Object name" />
-                  <AssetField label="Description" value={o.description} onChange={v => updObj(i, "description", v)} placeholder="What it looks like — no material language" multiline />
-                  <AssetField label="Scale Relative to Character" value={o.scale} onChange={v => updObj(i, "scale", v)} placeholder="e.g. Swing seat at knee height when standing" />
-                  <AssetField label="Behaviour in Motion" value={o.behaviour} onChange={v => updObj(i, "behaviour", v)} placeholder="How it moves, hangs, or responds in the shot" />
-                  <AssetField label="Additional Notes" value={o.notes} onChange={v => updObj(i, "notes", v)} placeholder="Anything else Claude must lock" multiline />
+                  <AssetField label="Description" value={o.description} onChange={v => updObj(i, "description", v)} placeholder="What it looks like — no material language (bible handles that)" multiline />
+                  <AssetField label="Physical Behaviour" value={o.behaviour} onChange={v => updObj(i, "behaviour", v)} placeholder="Scale relative to character + how it moves, hangs, or responds — e.g. Seat at hip height when seated, ropes hang taut to crossbar 2m above, swings in a 70-degree arc" multiline />
                   <AssetImageUpload assetKey={"obj_" + i} assetImages={assetImages} setAssetImages={setAssetImages} label="Object" />
                 </div>
               </div>
@@ -1210,9 +1199,9 @@ export default function App() {
   useEffect(() => { try { localStorage.setItem("da_frame1", frame1); } catch (e) {} }, [frame1]);
   useEffect(() => { try { localStorage.setItem("da_frame2", frame2); } catch (e) {} }, [frame2]);
 
-  const defEnv  = { name:"", setting:"", time:"", mood:"", notes:"" };
-  const defChar = { name:"", role:"", appearance:"", costume:"", expression:"", distinctive:"", notes:"" };
-  const defObj  = { name:"", description:"", scale:"", behaviour:"", notes:"" };
+  const defEnv  = { setting:"", atmosphere:"" };
+  const defChar = { name:"", appearance:"", identity:"" };
+  const defObj  = { name:"", description:"", behaviour:"" };
 
   const [environment,  setEnvironment]  = useState(() => { try { const s = localStorage.getItem("da_environment"); return s ? JSON.parse(s) : defEnv; } catch (e) { return defEnv; } });
   const [characters,   setCharacters]   = useState(() => { try { const s = localStorage.getItem("da_characters");  return s ? JSON.parse(s) : [];     } catch (e) { return [];     } });
@@ -1279,31 +1268,22 @@ export default function App() {
     if (!claudeKey.trim()) throw new Error("No Claude API key — add it in Settings");
 
     const assetLines = [];
-    if (environment.name || environment.setting) {
+    if (environment.setting || environment.atmosphere) {
       assetLines.push("ENVIRONMENT SHEET:");
-      if (environment.name)    assetLines.push("  Name: " + environment.name);
-      if (environment.setting) assetLines.push("  Setting: " + environment.setting);
-      if (environment.time)    assetLines.push("  Time: " + environment.time);
-      if (environment.mood)    assetLines.push("  Mood: " + environment.mood);
-      if (environment.notes)   assetLines.push("  Notes: " + environment.notes);
+      if (environment.setting)    assetLines.push("  Setting: " + environment.setting);
+      if (environment.atmosphere) assetLines.push("  Atmosphere: " + environment.atmosphere);
     }
-    characters.forEach((c, i) => {
-      if (!c.name && !c.appearance) return;
-      assetLines.push("\nCHARACTER SHEET " + (i+1) + ": " + (c.name || "Unnamed"));
-      if (c.role)        assetLines.push("  Role: " + c.role);
-      if (c.appearance)  assetLines.push("  Appearance: " + c.appearance);
-      if (c.costume)     assetLines.push("  Costume: " + c.costume);
-      if (c.expression)  assetLines.push("  Expression: " + c.expression);
-      if (c.distinctive) assetLines.push("  Distinctive: " + c.distinctive);
-      if (c.notes)       assetLines.push("  Notes: " + c.notes);
+    characters.forEach((ch, i) => {
+      if (!ch.name && !ch.appearance) return;
+      assetLines.push("\nCHARACTER SHEET " + (i+1) + ": " + (ch.name || "Unnamed"));
+      if (ch.appearance) assetLines.push("  Appearance & Costume: " + ch.appearance);
+      if (ch.identity)   assetLines.push("  IDENTITY LOCK — reproduce exactly in every frame: " + ch.identity);
     });
     objects.forEach((o, i) => {
       if (!o.name && !o.description) return;
       assetLines.push("\nOBJECT SHEET " + (i+1) + ": " + (o.name || "Unnamed"));
       if (o.description) assetLines.push("  Description: " + o.description);
-      if (o.scale)       assetLines.push("  Scale: " + o.scale);
-      if (o.behaviour)   assetLines.push("  Behaviour: " + o.behaviour);
-      if (o.notes)       assetLines.push("  Notes: " + o.notes);
+      if (o.behaviour)   assetLines.push("  Physical Behaviour: " + o.behaviour);
     });
     const assetBrief = assetLines.join("\n");
 
