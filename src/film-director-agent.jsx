@@ -915,7 +915,7 @@ export default function App() {
     nbModel:         "nano-banana-2",
     falModel:        "fal-ai/flux/dev",
     geminiKey:       "",
-    nbKey:           ",
+    nbKey:           "",
     falKey:          "",
     // Weavy
     weavyUrl: "",
