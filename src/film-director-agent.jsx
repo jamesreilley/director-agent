@@ -748,6 +748,20 @@ function Settings({ s, set, onClose }) {
         </div>
         <div style={{ padding:"18px 22px", display:"grid", gap:24, flex:1 }}>
 
+          {/* ── CLAUDE ── */}
+          <div style={{ padding:"14px 16px", background:"rgba(200,160,80,.04)", border:"1px solid rgba(200,160,80,.12)", borderRadius:10 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+              <span style={{ fontSize:16 }}>🧠</span>
+              <div>
+                <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:"rgba(200,160,80,.85)", letterSpacing:".06em" }}>Claude API</div>
+                <div style={{ fontSize:10, color:"rgba(232,224,212,.28)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:2 }}>Prompt architect — writes your bible-locked prompts</div>
+              </div>
+            </div>
+            <SLabel>API Key</SLabel>
+            <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginBottom:7 }}>console.anthropic.com → API Keys</div>
+            <SecretInput value={s.claudeKey} onChange={v=>upd("claudeKey",v)} placeholder="sk-ant-…" />
+          </div>
+
           {/* ── COMFYUI — primary renderer ── */}
           <div style={{ padding:"16px 18px", background:"rgba(130,80,200,.05)", border:"1px solid rgba(130,80,200,.2)", borderRadius:10 }}>
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16 }}>
@@ -911,6 +925,8 @@ function Settings({ s, set, onClose }) {
 export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState({
+    // Claude
+    claudeKey:     "",
     // ComfyUI
     comfyUrl:      "",
     comfyModel:    "v1-5-pruned-emaonly.safetensors",
@@ -965,6 +981,7 @@ export default function App() {
   const [threadUrl,        setThreadUrl]        = useState(null);
 
   const {
+    claudeKey,
     comfyUrl, comfyModel, comfySampler, comfySteps, comfyCfg,
     comfyWidth, comfyHeight, comfyWorkflow,
     ratio, previewProvider, nbModel, falModel, geminiKey, nbKey, falKey,
@@ -997,7 +1014,7 @@ export default function App() {
     const refContext = refs.length ? `${refs.length} reference image${refs.length>1?"s":""} provided.` : "No reference images.";
     const userMsg = `VISUAL BIBLE:\n${bible}\n\n---\n\nFRAME 1 — START FRAME:\n${frame1}\n\n---\n\nFRAME 2 — END FRAME:\n${frame2}\n\n---\n\nREFERENCES: ${refContext}${feedback?`\n\n---\n\nDIRECTOR FEEDBACK TO APPLY:\n${feedback}`:""}\n\nSHOT LOG:\n${log.length?log.map((s,i)=>`#${i+1}: ${s.shotSummary}`).join("\n"):"No previous shots."}`;
     const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST", headers:{"Content-Type":"application/json"},
+      method:"POST", headers:{"Content-Type":"application/json", "x-api-key": claudeKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true"},
       body: JSON.stringify({ model:"claude-opus-4-6", max_tokens:1400, system:SYSTEM_PROMPT, messages:[{role:"user",content:userMsg}] }),
     });
     const data = await res.json();
