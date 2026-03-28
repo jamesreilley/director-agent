@@ -833,6 +833,11 @@ export default function App() {
     comfyWorkflow: "", ratio: "landscape_16_9",
     previewProvider: "gemini", nbModel: "nano-banana-2", falModel: "fal-ai/flux/dev",
     geminiKey: "", nbKey: "", falKey: "", weavyUrl: "", weavyKey: "",
+    // Consistency controls
+    useFrame1Ref: true,
+    useSharedSeed: true,
+    manualSeed: "",
+    useCameraLock: true,
   };
 
   // Persist settings in localStorage
@@ -881,7 +886,8 @@ export default function App() {
   const [threadUrl,       setThreadUrl]       = useState(null);
 
   const { claudeKey, comfyUrl, comfyModel, comfySteps, comfyGuidance, comfyWidth, comfyHeight, comfyWorkflow,
-          ratio, previewProvider, nbModel, falModel, geminiKey, nbKey, falKey, weavyUrl, weavyKey } = settings;
+          ratio, previewProvider, nbModel, falModel, geminiKey, nbKey, falKey, weavyUrl, weavyKey,
+          useFrame1Ref, useSharedSeed, manualSeed, useCameraLock } = settings;
 
   const comfyConfigured  = !!comfyUrl.trim();
   const weavyConfigured  = !!(weavyUrl.trim() && weavyKey.trim());
@@ -909,9 +915,14 @@ export default function App() {
   async function buildPrompts(feedback = null) {
     if (!claudeKey.trim()) throw new Error("No Claude API key — add it in Settings");
     const refContext = refs.length ? `${refs.length} reference image${refs.length>1?"s":""} provided.` : "No reference images.";
-    const shotSeed = Math.floor(Math.random() * 999999999);
-    const userMsg = `VISUAL BIBLE:\n${bible}\n\n---\n\nCAMERA LOCK:\n${camera.trim() || "Wide shot, camera locked, neutral angle, no movement."}\n\n---\n\nFRAME 1 — START FRAME:\n${frame1}\n\n---\n\nFRAME 2 — END FRAME:\n${frame2}\n\n---\n\nSEED: ${shotSeed} (use this seed reference in your output)\n\nREFERENCES: ${refContext}${feedback?`\n\n---\n\nDIRECTOR FEEDBACK:\n${feedback}`:""}\n\nSHOT LOG:\n${log.length ? log.map((s,i)=>`#${i+1}: ${s.shotSummary}`).join("\n") : "No previous shots."}`;
+    const shotSeed = useSharedSeed
+      ? (manualSeed.trim() ? parseInt(manualSeed.trim()) : Math.floor(Math.random() * 999999999))
+      : Math.floor(Math.random() * 999999999);
     setSeed(shotSeed);
+    const cameraSection = useCameraLock && camera.trim()
+      ? `\n\n---\n\nCAMERA LOCK (apply identically to both frames):\n${camera.trim()}`
+      : "";
+    const userMsg = `VISUAL BIBLE:\n${bible}${cameraSection}\n\n---\n\nFRAME 1 — START FRAME:\n${frame1}\n\n---\n\nFRAME 2 — END FRAME:\n${frame2}\n\n---\n\nSHARED SEED: ${shotSeed}\n\nREFERENCES: ${refContext}${feedback?`\n\n---\n\nDIRECTOR FEEDBACK:\n${feedback}`:""}\n\nSHOT LOG:\n${log.length ? log.map((s,i)=>`#${i+1}: ${s.shotSummary}`).join("\n") : "No previous shots."}`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -983,11 +994,12 @@ export default function App() {
           const promptId = await comfySubmit(comfyUrl, wf);
           url = await comfyPoll(comfyUrl, promptId);
         } else if (previewProvider === "gemini") {
+          const activeSeed = useSharedSeed ? seed : Math.floor(Math.random() * 999999999);
           const result = await geminiGenerateImage(
             geminiKey, frame.prompt, ratio,
             refResult?.base64 || null,
             refResult?.mimeType || null,
-            seed
+            activeSeed
           );
           url = result.url;
           // Store base64 for passing to Frame 2
@@ -1014,10 +1026,11 @@ export default function App() {
       s1 = await renderFrame(parsed.startFrame, setStartImg, setStartLoading, setStartMsg, setStartErr, null);
       s2 = await renderFrame(parsed.endFrame,   setEndImg,   setEndLoading,   setEndMsg,   setEndErr,   null);
     } else if (previewProvider === "gemini") {
-      // Sequential: Frame 2 gets Frame 1 as reference image for consistency
+      // Always sequential for Gemini — Frame 2 optionally references Frame 1
       const r1 = await renderFrame(parsed.startFrame, setStartImg, setStartLoading, setStartMsg, setStartErr, null);
       s1 = r1;
-      const r2 = await renderFrame(parsed.endFrame, setEndImg, setEndLoading, setEndMsg, setEndErr, parsed.startFrame._geminiResult || null);
+      const ref = useFrame1Ref ? (parsed.startFrame._geminiResult || null) : null;
+      const r2 = await renderFrame(parsed.endFrame, setEndImg, setEndLoading, setEndMsg, setEndErr, ref);
       s2 = r2;
     } else {
       [s1, s2] = await Promise.all([
@@ -1197,6 +1210,81 @@ export default function App() {
               placeholder="Framing & camera, hero element with exact specs, emotional tone, material reminder, subject position and action state at the START…" />
             <FrameInput number={2} label="Frame 2 — End" value={frame2} onChange={setFrame2}
               placeholder="Same framing & camera (or state if it moves), same hero element details, emotional resolution, subject position and action state at the END…" />
+          </div>
+
+          <Divider />
+
+          {/* ── Consistency Controls ── */}
+          <div>
+            <FieldLabel main="Consistency Controls" sub="Improve visual coherence between Frame 1 and Frame 2" />
+            <div style={{ display:"grid", gap:10 }}>
+
+              {/* Camera Lock toggle + input */}
+              <div style={{ borderRadius:8, border:`1px solid ${settings.useCameraLock?"rgba(200,160,80,.28)":"rgba(255,255,255,.08)"}`, overflow:"hidden", transition:"border-color .2s" }}>
+                <div style={{ padding:"9px 13px", background:`rgba(200,160,80,${settings.useCameraLock?".08":".03"})`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+                    <span style={{ fontSize:14 }}>🎥</span>
+                    <div>
+                      <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:settings.useCameraLock?"rgba(200,160,80,.9)":"rgba(232,224,212,.4)" }}>Camera Lock</div>
+                      <div style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(232,224,212,.38)", fontStyle:"italic", marginTop:1 }}>Locks camera identically across both frames</div>
+                    </div>
+                  </div>
+                  <button onClick={() => setSettings(p=>({...p,useCameraLock:!p.useCameraLock}))}
+                    style={{ width:38, height:22, borderRadius:11, background:settings.useCameraLock?"#c8a050":"rgba(255,255,255,.1)", border:"none", cursor:"pointer", position:"relative", transition:"background .2s", flexShrink:0 }}>
+                    <span style={{ position:"absolute", top:3, left:settings.useCameraLock?18:3, width:16, height:16, borderRadius:"50%", background:"#fff", transition:"left .2s", display:"block" }} />
+                  </button>
+                </div>
+                {settings.useCameraLock && (
+                  <input value={camera} onChange={e=>setCamera(e.target.value)}
+                    placeholder="e.g. 35mm · eye-level · wide shot · camera locked, no movement"
+                    style={{ width:"100%", background:"rgba(255,255,255,.02)", border:"none", borderTop:"1px solid rgba(200,160,80,.15)", color:"#e8e0d4", fontSize:13, padding:"10px 13px", fontFamily:"Georgia,serif", outline:"none", display:"block" }} />
+                )}
+              </div>
+
+              {/* Frame 1 → Frame 2 reference toggle */}
+              <div style={{ padding:"10px 13px", borderRadius:8, border:`1px solid ${settings.useFrame1Ref?"rgba(80,160,220,.25)":"rgba(255,255,255,.08)"}`, background:`rgba(80,160,220,${settings.useFrame1Ref?".05":".01"})`, display:"flex", alignItems:"center", justifyContent:"space-between", transition:"all .2s" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+                  <span style={{ fontSize:14 }}>🔗</span>
+                  <div>
+                    <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:settings.useFrame1Ref?"rgba(80,160,220,.9)":"rgba(232,224,212,.4)" }}>Frame 1 → Frame 2 Reference</div>
+                    <div style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(232,224,212,.38)", fontStyle:"italic", marginTop:1 }}>Passes Frame 1 as visual anchor when generating Frame 2</div>
+                  </div>
+                </div>
+                <button onClick={() => setSettings(p=>({...p,useFrame1Ref:!p.useFrame1Ref}))}
+                  style={{ width:38, height:22, borderRadius:11, background:settings.useFrame1Ref?"rgba(80,160,220,.8)":"rgba(255,255,255,.1)", border:"none", cursor:"pointer", position:"relative", transition:"background .2s", flexShrink:0 }}>
+                  <span style={{ position:"absolute", top:3, left:settings.useFrame1Ref?18:3, width:16, height:16, borderRadius:"50%", background:"#fff", transition:"left .2s", display:"block" }} />
+                </button>
+              </div>
+
+              {/* Shared seed toggle + manual input */}
+              <div style={{ borderRadius:8, border:`1px solid ${settings.useSharedSeed?"rgba(130,80,200,.25)":"rgba(255,255,255,.08)"}`, overflow:"hidden", transition:"border-color .2s" }}>
+                <div style={{ padding:"10px 13px", background:`rgba(130,80,200,${settings.useSharedSeed?".06":".01"})`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+                    <span style={{ fontSize:14 }}>🎲</span>
+                    <div>
+                      <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:settings.useSharedSeed?"rgba(180,130,255,.9)":"rgba(232,224,212,.4)" }}>Shared Seed</div>
+                      <div style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(232,224,212,.38)", fontStyle:"italic", marginTop:1 }}>Same seed initialises both frames for visual coherence</div>
+                    </div>
+                  </div>
+                  <button onClick={() => setSettings(p=>({...p,useSharedSeed:!p.useSharedSeed}))}
+                    style={{ width:38, height:22, borderRadius:11, background:settings.useSharedSeed?"rgba(130,80,200,.8)":"rgba(255,255,255,.1)", border:"none", cursor:"pointer", position:"relative", transition:"background .2s", flexShrink:0 }}>
+                    <span style={{ position:"absolute", top:3, left:settings.useSharedSeed?18:3, width:16, height:16, borderRadius:"50%", background:"#fff", transition:"left .2s", display:"block" }} />
+                  </button>
+                </div>
+                {settings.useSharedSeed && (
+                  <div style={{ padding:"10px 13px", borderTop:"1px solid rgba(130,80,200,.15)", background:"rgba(255,255,255,.02)", display:"flex", alignItems:"center", gap:10 }}>
+                    <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(232,224,212,.45)", flexShrink:0 }}>Seed</div>
+                    <input type="number" value={settings.manualSeed} onChange={e=>setSettings(p=>({...p,manualSeed:e.target.value}))}
+                      placeholder={seed ? String(seed) : "Auto-generated each shot"}
+                      style={{ flex:1, background:"rgba(255,255,255,.04)", border:"1px solid rgba(130,80,200,.2)", borderRadius:5, color:"#e8e0d4", fontSize:12, padding:"6px 10px", fontFamily:"monospace", outline:"none" }} />
+                    {seed && <div style={{ fontSize:10, color:"rgba(180,130,255,.5)", fontFamily:"monospace", flexShrink:0 }}>Last: {seed}</div>}
+                    <button onClick={()=>setSettings(p=>({...p,manualSeed:""}))}
+                      style={{ fontSize:10, color:"rgba(232,224,212,.3)", background:"none", border:"none", cursor:"pointer", fontFamily:"sans-serif", flexShrink:0 }}>Reset</button>
+                  </div>
+                )}
+              </div>
+
+            </div>
           </div>
 
           <Divider />
