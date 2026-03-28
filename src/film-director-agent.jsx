@@ -924,34 +924,47 @@ function Settings({ s, set, onClose }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function App() {
   const [showSettings, setShowSettings] = useState(false);
-  const [settings, setSettings] = useState({
-    // Claude
+
+  const defaultSettings = {
     claudeKey:     "",
-    // ComfyUI
     comfyUrl:      "",
-    comfyModel:    "v1-5-pruned-emaonly.safetensors",
-    
+    comfyModel:    "FLUX1/flux1-dev-fp8.safetensors",
     comfySteps:    20,
     comfyGuidance: 3.5,
     comfyWidth:    1024,
     comfyHeight:   576,
     comfyWorkflow: "",
     ratio:         "landscape_16_9",
-    // Preview
     previewProvider: "gemini",
     nbModel:         "nano-banana-2",
     falModel:        "fal-ai/flux/dev",
     geminiKey:       "",
     nbKey:           "",
     falKey:          "",
-    // Weavy
     weavyUrl: "",
     weavyKey: "",
+  };
+
+  const [settings, setSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem("da_settings");
+      return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
+    } catch(e) { return defaultSettings; }
   });
 
-  const [bible,  setBible]  = useState("");
-  const [frame1, setFrame1] = useState("");
-  const [frame2, setFrame2] = useState("");
+  // Persist settings on every change
+  useEffect(() => {
+    try { localStorage.setItem("da_settings", JSON.stringify(settings)); } catch(e) {}
+  }, [settings]);
+
+  const [bible,  setBible]  = useState(() => { try { return localStorage.getItem("da_bible")  || ""; } catch(e) { return ""; } });
+  const [frame1, setFrame1] = useState(() => { try { return localStorage.getItem("da_frame1") || ""; } catch(e) { return ""; } });
+  const [frame2, setFrame2] = useState(() => { try { return localStorage.getItem("da_frame2") || ""; } catch(e) { return ""; } });
+
+  // Persist bible and frames on change
+  useEffect(() => { try { localStorage.setItem("da_bible",  bible);  } catch(e) {} }, [bible]);
+  useEffect(() => { try { localStorage.setItem("da_frame1", frame1); } catch(e) {} }, [frame1]);
+  useEffect(() => { try { localStorage.setItem("da_frame2", frame2); } catch(e) {} }, [frame2]);
   const [refs,   setRefs]   = useState([]);
 
   const [shot,         setShot]         = useState(null);
@@ -1127,7 +1140,13 @@ export default function App() {
       setRenderBusy(false);
       await postToWeavy(parsed, s1, s2, ver);
     } catch(e) {
-      setGenError("Generation failed — check your API key and try again."); console.error(e);
+      console.error("Generation error full:", e);
+      const msg = e.message?.includes("401") ? "Invalid Claude API key — check Settings"
+        : e.message?.includes("403") ? "Claude API key forbidden — check console.anthropic.com"
+        : e.message?.includes("429") ? "Rate limit — wait a moment and retry"
+        : e.message?.includes("Failed to fetch") || e.message?.includes("NetworkError") ? "Network error — check your internet and API key"
+        : `Generation failed: ${e.message || "unknown error"}`;
+      setGenError(msg);
       setRenderBusy(false);
     }
     setGenBusy(false);
