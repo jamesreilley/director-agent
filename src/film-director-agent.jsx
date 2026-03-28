@@ -882,7 +882,6 @@ function buildComfyControlNetWorkflow({ positivePrompt, negativePrompt, modelNam
     "3": { "inputs": { "text": positivePrompt, "clip": ["1",1] }, "class_type": "CLIPTextEncode" },
     "4": { "inputs": { "text": negativePrompt||"blurry, deformed, low quality", "clip": ["1",1] }, "class_type": "CLIPTextEncode" },
     "5": { "inputs": { "guidance": 3.5, "conditioning": ["3",0] }, "class_type": "FluxGuidance" },
-    // Depth ControlNet — locks spatial composition from Frame 1
     "9": { "inputs": { "control_net_name": "control_v11f1p_sd15_depth.pth" }, "class_type": "ControlNetLoader" },
     "10": { "inputs": { "image": controlImageUrl || "", "upload": "image" }, "class_type": "LoadImage" },
     "11": { "inputs": { "positive": ["5",0], "negative": ["4",0], "control_net": ["9",0], "image": ["10",0], "strength": 0.75, "start_percent": 0, "end_percent": 1 }, "class_type": "ControlNetApplyAdvanced" },
