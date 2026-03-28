@@ -1688,25 +1688,7 @@ export default function App() {
           <Divider />
 
           <div>
-            <FieldLabel main="Camera Lock" sub="Focal length, height, angle, movement — locked identically across both frames" />
-            <div style={{ borderRadius:9, border:`1px solid ${camera.trim()?"rgba(200,160,80,.28)":"rgba(255,255,255,.07)"}`, overflow:"hidden", background:"rgba(255,255,255,.015)", transition:"border-color .2s" }}>
-              <div style={{ padding:"9px 13px", background:"rgba(200,160,80,.06)", borderBottom:"1px solid rgba(200,160,80,.12)", display:"flex", alignItems:"center", gap:9 }}>
-                <span style={{ fontSize:16 }}>🎥</span>
-                <span style={{ fontSize:11, letterSpacing:".1em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(200,160,80,.9)", fontWeight:700 }}>Camera Lock</span>
-                <span style={{ fontSize:10, color:"rgba(200,160,80,.45)", fontFamily:"sans-serif", fontStyle:"italic", marginLeft:"auto" }}>applied to both frames</span>
-              </div>
-              <input
-                value={camera}
-                onChange={e => setCamera(e.target.value)}
-                placeholder="e.g. 35mm lens · low angle eye-level · wide shot · camera locked, no movement"
-                style={{ width:"100%", background:"transparent", border:"none", color:"#e8e0d4", fontSize:13, padding:"12px 13px", fontFamily:"Georgia,serif", outline:"none", display:"block" }}
-              />
-            </div>
-          </div>
-
-          <Divider />
-
-          <div style={{ display:"grid", gap:12 }}>
+            <div style={{ display:"grid", gap:12 }}>
             <FrameInput number={1} label="Frame 1 — Start" value={frame1} onChange={setFrame1}
               placeholder="Framing & camera, hero element with exact specs, emotional tone, material reminder, subject position and action state at the START…" />
             <FrameInput number={2} label="Frame 2 — End" value={frame2} onChange={setFrame2}
