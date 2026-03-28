@@ -114,6 +114,77 @@ function buildComfyWorkflow(positivePrompt, negativePrompt, modelName, width, he
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// COMFYUI WORKFLOWS — IP-Adapter + ControlNet
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Flux + IP-Adapter workflow (character identity lock)
+function buildIPAdapterWorkflow(positivePrompt, negativePrompt, modelName, width, height, steps, seed, ipStrength) {
+  return {
+    "1":  { inputs: { ckpt_name: modelName || "FLUX1/flux1-dev-fp8.safetensors" }, class_type: "CheckpointLoaderSimple" },
+    "2":  { inputs: { width: width||1024, height: height||576, batch_size: 1 }, class_type: "EmptyLatentImage" },
+    "3":  { inputs: { text: positivePrompt, clip: ["1", 1] }, class_type: "CLIPTextEncode" },
+    "4":  { inputs: { text: negativePrompt || "blurry, deformed, low quality", clip: ["1", 1] }, class_type: "CLIPTextEncode" },
+    "5":  { inputs: { guidance: 3.5, conditioning: ["3", 0] }, class_type: "FluxGuidance" },
+    "9":  { inputs: { clip_name: "clip_vision_g.safetensors" }, class_type: "CLIPVisionLoader" },
+    "10": { inputs: { ipadapter: "ip_adapter.safetensors" }, class_type: "IPAdapterModelLoader" },
+    "11": { inputs: {
+              model: ["1", 0], ipadapter: ["10", 0], clip_vision: ["9", 0],
+              image: ["20", 0], weight: ipStrength || 0.7,
+              weight_type: "linear", start_at: 0, end_at: 1,
+              combine_embeds: "concat", embeds_scaling: "V only"
+            }, class_type: "IPAdapterAdvanced" },
+    "20": { inputs: { image: "ip_reference.png", upload: "image" }, class_type: "LoadImage" },
+    "6":  {
+      inputs: {
+        seed: seed || Math.floor(Math.random() * 999999999),
+        steps: steps || 20, cfg: 1.0, sampler_name: "euler", scheduler: "simple", denoise: 1.0,
+        model: ["11", 0], positive: ["5", 0], negative: ["4", 0], latent_image: ["2", 0],
+      },
+      class_type: "KSampler",
+    },
+    "7":  { inputs: { samples: ["6", 0], vae: ["1", 2] }, class_type: "VAEDecode" },
+    "8":  { inputs: { filename_prefix: "director-agent-ip", images: ["7", 0] }, class_type: "SaveImage" },
+  };
+}
+
+// Flux + IP-Adapter + ControlNet Depth workflow (character identity + camera lock)
+function buildIPAdapterControlNetWorkflow(positivePrompt, negativePrompt, modelName, width, height, steps, seed, ipStrength, cnStrength) {
+  return {
+    "1":  { inputs: { ckpt_name: modelName || "FLUX1/flux1-dev-fp8.safetensors" }, class_type: "CheckpointLoaderSimple" },
+    "2":  { inputs: { width: width||1024, height: height||576, batch_size: 1 }, class_type: "EmptyLatentImage" },
+    "3":  { inputs: { text: positivePrompt, clip: ["1", 1] }, class_type: "CLIPTextEncode" },
+    "4":  { inputs: { text: negativePrompt || "blurry, deformed, low quality", clip: ["1", 1] }, class_type: "CLIPTextEncode" },
+    "5":  { inputs: { guidance: 3.5, conditioning: ["3", 0] }, class_type: "FluxGuidance" },
+    "9":  { inputs: { clip_name: "clip_vision_g.safetensors" }, class_type: "CLIPVisionLoader" },
+    "10": { inputs: { ipadapter: "ip_adapter.safetensors" }, class_type: "IPAdapterModelLoader" },
+    "11": { inputs: {
+              model: ["1", 0], ipadapter: ["10", 0], clip_vision: ["9", 0],
+              image: ["20", 0], weight: ipStrength || 0.7,
+              weight_type: "linear", start_at: 0, end_at: 1,
+              combine_embeds: "concat", embeds_scaling: "V only"
+            }, class_type: "IPAdapterAdvanced" },
+    "20": { inputs: { image: "ip_reference.png", upload: "image" }, class_type: "LoadImage" },
+    "21": { inputs: { image: "depth_reference.png", upload: "image" }, class_type: "LoadImage" },
+    "12": { inputs: { control_net_name: "flux-depth-controlnet-v3.safetensors" }, class_type: "ControlNetLoader" },
+    "13": { inputs: {
+              positive: ["5", 0], negative: ["4", 0],
+              control_net: ["12", 0], image: ["21", 0],
+              strength: cnStrength || 0.75, start_percent: 0, end_percent: 1
+            }, class_type: "ControlNetApplyAdvanced" },
+    "6":  {
+      inputs: {
+        seed: seed || Math.floor(Math.random() * 999999999),
+        steps: steps || 20, cfg: 1.0, sampler_name: "euler", scheduler: "simple", denoise: 1.0,
+        model: ["11", 0], positive: ["13", 0], negative: ["13", 1], latent_image: ["2", 0],
+      },
+      class_type: "KSampler",
+    },
+    "7":  { inputs: { samples: ["6", 0], vae: ["1", 2] }, class_type: "VAEDecode" },
+    "8":  { inputs: { filename_prefix: "director-agent-ipcn", images: ["7", 0] }, class_type: "SaveImage" },
+  };
+}
+
 function injectIntoCustomWorkflow(wfJson, pos, neg) {
   const wf = JSON.parse(JSON.stringify(wfJson));
   let posId = null;
@@ -589,8 +660,7 @@ function ShotAssets({ environment, setEnvironment, characters, setCharacters, ob
       <div style={{ padding:"14px", display:"grid", gap:14 }}>
         {assetTab === "environment" && (
           <>
-            <AssetField label="Name" value={environment.name} onChange={v => updEnv("name", v)} placeholder="e.g. The Woolwich Garden" />
-            <AssetField label="Setting" value={environment.setting} onChange={v => updEnv("setting", v)} placeholder="Description, time of day — e.g. A sun-filled park on a warm afternoon, swing hanging from an old tree at the centre of a gently sloping lawn" multiline />
+            <AssetField label="Setting" value={environment.setting} onChange={v => updEnv("setting", v)} placeholder="Location name, description, time of day — e.g. A sun-filled park on a warm afternoon, swing hanging from an old tree at the centre of a gently sloping lawn" multiline />
             <AssetField label="Atmosphere" value={environment.atmosphere} onChange={v => updEnv("atmosphere", v)} placeholder="e.g. Warm, joyful, intimate — golden afternoon light, soft shadows" />
             <AssetImageUpload assetKey="environment" assetImages={assetImages} setAssetImages={setAssetImages} label="Environment" />
           </>
@@ -774,6 +844,37 @@ function ConsistencyControls({ settings, setSettings, seed, comfyConfigured }) {
           </div>
           <Toggle on={settings.useCropLock} onToggle={() => upd("useCropLock", !settings.useCropLock)} activeColor="rgba(80,180,120,.85)" />
         </div>
+        {/* IP-Adapter toggle + strength */}
+        <div style={{ borderRadius:8, border:"1px solid " + (settings.useIPAdapter ? "rgba(200,100,60,.35)" : "rgba(255,255,255,.08)"), overflow:"hidden", transition:"border-color .2s", opacity:comfyConfigured?1:0.45 }}>
+          <div style={{ padding:"10px 13px", background:"rgba(200,100,60," + (settings.useIPAdapter ? ".07" : ".01") + ")", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+              <span style={{ fontSize:14 }}>🎭</span>
+              <div>
+                <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:settings.useIPAdapter ? "rgba(200,100,60,.95)" : "rgba(232,224,212,.4)" }}>
+                  IP-Adapter
+                  <span style={{ fontSize:10, padding:"2px 6px", background:"rgba(200,100,60,.15)", borderRadius:10, color:"rgba(200,100,60,.7)", fontWeight:400, marginLeft:6 }}>ComfyUI only</span>
+                </div>
+                <div style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(232,224,212,.38)", fontStyle:"italic", marginTop:1 }}>Locks character identity from your asset reference image</div>
+              </div>
+            </div>
+            <Toggle on={settings.useIPAdapter} onToggle={() => { if (comfyConfigured) setSettings(p => ({...p, useIPAdapter:!p.useIPAdapter})); }} activeColor="rgba(200,100,60,.85)" />
+          </div>
+          {settings.useIPAdapter && (
+            <div style={{ padding:"10px 13px", borderTop:"1px solid rgba(200,100,60,.15)", background:"rgba(255,255,255,.02)", display:"grid", gap:8 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <div style={{ fontSize:11, fontFamily:"sans-serif", color:"rgba(232,224,212,.5)", flexShrink:0, width:80 }}>IP Strength</div>
+                <input type="range" min={0.1} max={1.0} step={0.05} value={settings.ipStrength}
+                  onChange={e => setSettings(p => ({...p, ipStrength:Number(e.target.value)}))}
+                  style={{ flex:1, accentColor:"rgba(200,100,60,.8)" }} />
+                <div style={{ fontSize:11, fontFamily:"monospace", color:"rgba(200,100,60,.7)", width:32, textAlign:"right" }}>{settings.ipStrength}</div>
+              </div>
+              <div style={{ fontSize:10, color:"rgba(232,224,212,.3)", fontFamily:"sans-serif", fontStyle:"italic" }}>
+                0.5–0.7 recommended — higher values enforce identity more strictly but may reduce prompt adherence
+              </div>
+            </div>
+          )}
+        </div>
+
         <div style={{ padding:"10px 13px", borderRadius:8, border:"1px solid " + (settings.useControlNet ? "rgba(130,80,200,.35)" : "rgba(255,255,255,.06)"), background:"rgba(130,80,200," + (settings.useControlNet ? ".07" : ".01") + ")", display:"flex", alignItems:"center", justifyContent:"space-between", transition:"all .2s", opacity:comfyConfigured ? 1 : 0.45 }}>
           <div style={{ display:"flex", alignItems:"center", gap:9 }}>
             <span style={{ fontSize:14 }}>🧭</span>
@@ -1185,6 +1286,7 @@ export default function App() {
     useFrame1Ref:true, useSharedSeed:true, manualSeed:"",
     useCameraLock:true, cameraLens:"35mm", cameraFraming:"wide", cameraFreeText:"",
     useCropLock:true, useControlNet:false,
+    useIPAdapter:false, ipStrength:0.7, cnStrength:0.75,
   };
 
   const [settings, setSettings] = useState(() => {
@@ -1200,7 +1302,7 @@ export default function App() {
   useEffect(() => { try { localStorage.setItem("da_frame1", frame1); } catch (e) {} }, [frame1]);
   useEffect(() => { try { localStorage.setItem("da_frame2", frame2); } catch (e) {} }, [frame2]);
 
-  const defEnv  = { name:"", setting:"", atmosphere:"" };
+  const defEnv  = { setting:"", atmosphere:"" };
   const defChar = { name:"", appearance:"", identity:"" };
   const defObj  = { name:"", description:"", behaviour:"" };
 
@@ -1242,7 +1344,7 @@ export default function App() {
   const { claudeKey, comfyUrl, comfyModel, comfySteps, comfyGuidance, comfyWidth, comfyHeight, comfyWorkflow,
           ratio, previewProvider, nbModel, falModel, geminiKey, nbKey, falKey, weavyUrl, weavyKey,
           useFrame1Ref, useSharedSeed, manualSeed, useCameraLock, cameraLens, cameraFraming, cameraFreeText,
-          useCropLock } = settings;
+          useCropLock, useIPAdapter, ipStrength, cnStrength, useControlNet } = settings;
 
   const comfyConfigured  = !!comfyUrl.trim();
   const weavyConfigured  = !!(weavyUrl.trim() && weavyKey.trim());
@@ -1368,10 +1470,22 @@ export default function App() {
         let url;
         if (mode === "comfy") {
           const customWf = comfyWorkflow.trim() || null;
-          const wf = customWf
-            ? injectIntoCustomWorkflow(JSON.parse(customWf), frame.prompt, frame.negativePrompt)
-            : buildComfyWorkflow(frame.prompt, frame.negativePrompt, comfyModel, comfyWidth, comfyHeight, comfySteps, Math.floor(Math.random() * 999999999));
-          setMsg("Rendering in ComfyUI…");
+          let wf;
+          if (customWf) {
+            wf = injectIntoCustomWorkflow(JSON.parse(customWf), frame.prompt, frame.negativePrompt);
+          } else if (useIPAdapter && refResult) {
+            // IP-Adapter + ControlNet — use depth from refResult if ControlNet enabled
+            if (useControlNet) {
+              setMsg("Rendering with IP-Adapter + ControlNet…");
+              wf = buildIPAdapterControlNetWorkflow(frame.prompt, frame.negativePrompt, comfyModel, comfyWidth, comfyHeight, comfySteps, Math.floor(Math.random() * 999999999), ipStrength, cnStrength);
+            } else {
+              setMsg("Rendering with IP-Adapter…");
+              wf = buildIPAdapterWorkflow(frame.prompt, frame.negativePrompt, comfyModel, comfyWidth, comfyHeight, comfySteps, Math.floor(Math.random() * 999999999), ipStrength);
+            }
+          } else {
+            wf = buildComfyWorkflow(frame.prompt, frame.negativePrompt, comfyModel, comfyWidth, comfyHeight, comfySteps, Math.floor(Math.random() * 999999999));
+            setMsg("Rendering in ComfyUI…");
+          }
           const promptId = await comfySubmit(comfyUrl, wf);
           url = await comfyPoll(comfyUrl, promptId);
         } else if (previewProvider === "gemini") {
