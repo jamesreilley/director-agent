@@ -78,10 +78,12 @@ Valid JSON only. No markdown. No preamble.
 // This is injected with the generated prompts and sent to the ComfyUI API.
 // The user can override this with their own workflow JSON in Settings.
 // ─────────────────────────────────────────────────────────────────────────────
-function buildComfyWorkflow({ positivePrompt, negativePrompt, modelName, width, height, steps, cfg, sampler, scheduler, seed }) {
+// Flux.1 dev workflow — tuned for flux1-dev-fp8.safetensors
+// CFG must be 1.0, scheduler must be "simple", guidance via FluxGuidance node at 3.5
+function buildComfyWorkflow({ positivePrompt, negativePrompt, modelName, width, height, steps, seed }) {
   return {
     "1": {
-      "inputs": { "ckpt_name": modelName || "v1-5-pruned-emaonly.safetensors" },
+      "inputs": { "ckpt_name": modelName || "FLUX1/flux1-dev-fp8.safetensors" },
       "class_type": "CheckpointLoaderSimple"
     },
     "2": {
@@ -93,30 +95,34 @@ function buildComfyWorkflow({ positivePrompt, negativePrompt, modelName, width, 
       "class_type": "CLIPTextEncode"
     },
     "4": {
-      "inputs": { "text": negativePrompt || "blurry, deformed, low quality, watermark, text", "clip": ["1", 1] },
+      "inputs": { "text": negativePrompt || "blurry, deformed, low quality, watermark", "clip": ["1", 1] },
       "class_type": "CLIPTextEncode"
     },
     "5": {
+      "inputs": { "guidance": 3.5, "conditioning": ["3", 0] },
+      "class_type": "FluxGuidance"
+    },
+    "6": {
       "inputs": {
         "seed": seed || Math.floor(Math.random() * 999999999),
         "steps": steps || 20,
-        "cfg": cfg || 7,
-        "sampler_name": sampler || "euler",
-        "scheduler": scheduler || "normal",
-        "denoise": 1,
+        "cfg": 1.0,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1.0,
         "model": ["1", 0],
-        "positive": ["3", 0],
+        "positive": ["5", 0],
         "negative": ["4", 0],
         "latent_image": ["2", 0]
       },
       "class_type": "KSampler"
     },
-    "6": {
-      "inputs": { "samples": ["5", 0], "vae": ["1", 2] },
+    "7": {
+      "inputs": { "samples": ["6", 0], "vae": ["1", 2] },
       "class_type": "VAEDecode"
     },
-    "7": {
-      "inputs": { "filename_prefix": "director-agent", "images": ["6", 0] },
+    "8": {
+      "inputs": { "filename_prefix": "director-agent", "images": ["7", 0] },
       "class_type": "SaveImage"
     }
   };
@@ -859,9 +865,9 @@ export default function App() {
     // ComfyUI
     comfyUrl:      "",
     comfyModel:    "v1-5-pruned-emaonly.safetensors",
-    comfySampler:  "euler",
+    
     comfySteps:    20,
-    comfyCfg:      7,
+    comfyGuidance: 3.5,
     comfyWidth:    1024,
     comfyHeight:   576,
     comfyWorkflow: "",
@@ -956,7 +962,7 @@ export default function App() {
     setStartMsg("Queuing in ComfyUI…"); setEndMsg("Queuing in ComfyUI…");
     setStartErr(null); setEndErr(null); setStartImg(null); setEndImg(null);
 
-    const comfySettings = { modelName:comfyModel, width:comfyWidth, height:comfyHeight, steps:comfySteps, cfg:comfyCfg, sampler:comfySampler, scheduler:"normal" };
+    const comfySettings = { modelName:comfyModel, width:comfyWidth, height:comfyHeight, steps:comfySteps };
     const customWf = comfyWorkflow.trim() || null;
 
     const renderFrame = async (frame, setImg, setLoad, setMsg, setErr) => {
