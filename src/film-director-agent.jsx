@@ -1199,7 +1199,7 @@ export default function App() {
   useEffect(() => { try { localStorage.setItem("da_frame1", frame1); } catch (e) {} }, [frame1]);
   useEffect(() => { try { localStorage.setItem("da_frame2", frame2); } catch (e) {} }, [frame2]);
 
-  const defEnv  = { setting:"", atmosphere:"" };
+  const defEnv  = { name:"", setting:"", atmosphere:"" };
   const defChar = { name:"", appearance:"", identity:"" };
   const defObj  = { name:"", description:"", behaviour:"" };
 
