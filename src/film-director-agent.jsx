@@ -589,7 +589,8 @@ function ShotAssets({ environment, setEnvironment, characters, setCharacters, ob
       <div style={{ padding:"14px", display:"grid", gap:14 }}>
         {assetTab === "environment" && (
           <>
-            <AssetField label="Setting" value={environment.setting} onChange={v => updEnv("setting", v)} placeholder="Location name, description, time of day — e.g. A sun-filled park on a warm afternoon, swing hanging from an old tree at the centre of a gently sloping lawn" multiline />
+            <AssetField label="Name" value={environment.name} onChange={v => updEnv("name", v)} placeholder="e.g. The Woolwich Garden" />
+            <AssetField label="Setting" value={environment.setting} onChange={v => updEnv("setting", v)} placeholder="Description, time of day — e.g. A sun-filled park on a warm afternoon, swing hanging from an old tree at the centre of a gently sloping lawn" multiline />
             <AssetField label="Atmosphere" value={environment.atmosphere} onChange={v => updEnv("atmosphere", v)} placeholder="e.g. Warm, joyful, intimate — golden afternoon light, soft shadows" />
             <AssetImageUpload assetKey="environment" assetImages={assetImages} setAssetImages={setAssetImages} label="Environment" />
           </>
