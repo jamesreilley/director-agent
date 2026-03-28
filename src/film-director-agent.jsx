@@ -854,16 +854,27 @@ function Settings({ s, set, onClose }) {
                   })}
                 </div>
               </div>
-              {[
-                ["NanoBanana API Key","nananobanana.com → Settings → API Keys","nbKey","nb_…"],
-                ["fal.ai API Key","fal.ai/dashboard/keys","falKey","fal_…"],
-              ].map(([label,hint,key,ph])=>(
-                <div key={key}>
-                  <SLabel>{label}</SLabel>
-                  <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginBottom:6 }}>{hint}</div>
-                  <SecretInput value={s[key]} onChange={v=>upd(key,v)} placeholder={ph} />
+              {s.previewProvider === "gemini" && (
+                <div>
+                  <SLabel>Google AI Studio API Key</SLabel>
+                  <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginBottom:6 }}>aistudio.google.com → Get API Key</div>
+                  <SecretInput value={s.geminiKey} onChange={v=>upd("geminiKey",v)} placeholder="AIza…" />
                 </div>
-              ))}
+              )}
+              {s.previewProvider === "nanobanana" && (
+                <div>
+                  <SLabel>NanoBanana API Key</SLabel>
+                  <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginBottom:6 }}>nananobanana.com → Settings → API Keys</div>
+                  <SecretInput value={s.nbKey} onChange={v=>upd("nbKey",v)} placeholder="nb_…" />
+                </div>
+              )}
+              {s.previewProvider === "fal" && (
+                <div>
+                  <SLabel>fal.ai API Key</SLabel>
+                  <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginBottom:6 }}>fal.ai/dashboard/keys</div>
+                  <SecretInput value={s.falKey} onChange={v=>upd("falKey",v)} placeholder="fal_…" />
+                </div>
+              )}
             </div>
           </div>
 
