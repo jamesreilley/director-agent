@@ -566,7 +566,7 @@ function ShotAssets({ environment, setEnvironment, characters, setCharacters, ob
   const totalAssets = ((environment.name || environment.setting) ? 1 : 0) + characters.filter(c => c.name || c.appearance).length + objects.filter(o => o.name || o.description).length;
 
   return (
-    <div style={{ borderRadius:9, border:"1px solid rgba(200,160,80,.2)", overflow:"hidden", background:"rgba(200,160,80,.02)" }}>
+    <div style={{ borderRadius:9, border:"1px solid rgba(200,160,80,.2)", overflow:"visible", background:"rgba(200,160,80,.02)" }}>
       <div style={{ padding:"10px 14px", background:"rgba(200,160,80,.07)", borderBottom:"1px solid rgba(200,160,80,.15)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
           <span style={{ fontSize:14 }}>🗂</span>
