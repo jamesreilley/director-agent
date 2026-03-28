@@ -149,7 +149,7 @@ async function comfyPoll(serverUrl, promptId) {
 const PREVIEW_PROVIDERS = {
   gemini: {
     label: "Google AI Studio", icon: "✦",
-    models: [{ id: "gemini-2.0-flash-exp-image-generation", label: "Gemini 2.0 Flash", desc: "Fast, high quality" }],
+    models: [{ id: "gemini-2.0-flash-preview-image-generation", label: "Gemini 2.0 Flash", desc: "Fast, high quality" }],
   },
   nanobanana: {
     label: "NanoBanana", icon: "🍌",
@@ -178,7 +178,7 @@ const ASPECT_RATIOS = [
 // ─────────────────────────────────────────────────────────────────────────────
 async function geminiGenerateImage(apiKey, prompt, aspectRatio) {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -322,7 +322,7 @@ function CopyBtn({ text }) {
   const [ok, setOk] = useState(false);
   return (
     <button onClick={() => { navigator.clipboard.writeText(text); setOk(true); setTimeout(() => setOk(false), 2000); }}
-      style={{ background:ok?"rgba(80,160,100,.1)":"rgba(200,160,80,.06)", border:`1px solid ${ok?"rgba(80,160,100,.25)":"rgba(200,160,80,.15)"}`, borderRadius:4, padding:"3px 9px", cursor:"pointer", fontSize:10, letterSpacing:".1em", textTransform:"uppercase", color:ok?"#7dc493":"rgba(200,160,80,.55)", fontFamily:"sans-serif", transition:"all .2s" }}>
+      style={{ background:ok?"rgba(80,160,100,.1)":"rgba(200,160,80,.06)", border:`1px solid ${ok?"rgba(80,160,100,.25)":"rgba(200,160,80,.15)"}`, borderRadius:4, padding:"3px 9px", cursor:"pointer", fontSize:12, letterSpacing:".1em", textTransform:"uppercase", color:ok?"#7dc493":"rgba(200,160,80,.55)", fontFamily:"sans-serif", transition:"all .2s" }}>
       {ok ? "✓" : "COPY"}
     </button>
   );
@@ -331,8 +331,8 @@ function CopyBtn({ text }) {
 function FieldLabel({ main, sub }) {
   return (
     <div style={{ marginBottom:8 }}>
-      <div style={{ fontSize:10, letterSpacing:".14em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(200,160,80,.65)" }}>{main}</div>
-      {sub && <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:3, lineHeight:1.45 }}>{sub}</div>}
+      <div style={{ fontSize:12, letterSpacing:".14em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(200,160,80,.65)" }}>{main}</div>
+      {sub && <div style={{ fontSize:13, color:"rgba(232,224,212,.45)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:3, lineHeight:1.45 }}>{sub}</div>}
     </div>
   );
 }
@@ -340,7 +340,7 @@ function FieldLabel({ main, sub }) {
 function Divider() { return <div style={{ height:1, background:"rgba(255,255,255,.05)", margin:"2px 0" }} />; }
 
 function SLabel({ children }) {
-  return <div style={{ fontSize:10, letterSpacing:".13em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(200,160,80,.55)", marginBottom:4 }}>{children}</div>;
+  return <div style={{ fontSize:12, letterSpacing:".13em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(200,160,80,.55)", marginBottom:4 }}>{children}</div>;
 }
 
 function SecretInput({ value, onChange, placeholder }) {
@@ -351,7 +351,7 @@ function SecretInput({ value, onChange, placeholder }) {
         style={{ width:"100%", background:"rgba(255,255,255,.04)", border:"1px solid rgba(255,255,255,.07)", borderRadius:6, color:"#e8e0d4", fontSize:12, padding:"9px 34px 9px 11px", fontFamily:"monospace", outline:"none" }}
         onFocus={e => e.target.style.borderColor="rgba(200,160,80,.28)"}
         onBlur={e => e.target.style.borderColor="rgba(255,255,255,.07)"} />
-      <button onClick={() => setShow(!show)} style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:"rgba(232,224,212,.28)", cursor:"pointer", fontSize:11 }}>{show ? "🙈" : "👁"}</button>
+      <button onClick={() => setShow(!show)} style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:"rgba(232,224,212,.8)", cursor:"pointer", fontSize:11 }}>{show ? "🙈" : "👁"}</button>
     </div>
   );
 }
@@ -383,7 +383,7 @@ function StatusBar({ genBusy, renderBusy, activeRenderMode, providerLabel }) {
           <div style={{ fontSize:12, color:"#c8a050", fontFamily:"sans-serif", fontWeight:700, animation:"pulse 1.8s ease infinite" }}>
             {genBusy ? "Claude is writing your prompts…" : `Rendering via ${providerLabel}…`}
           </div>
-          <div style={{ fontSize:10, color:"rgba(232,224,212,.35)", fontFamily:"sans-serif", marginTop:3 }}>
+          <div style={{ fontSize:12, color:"rgba(232,224,212,.35)", fontFamily:"sans-serif", marginTop:3 }}>
             {genBusy
               ? "Applying Visual Bible · Bible compliance check · Building frame pair"
               : activeRenderMode === "comfy"
@@ -406,7 +406,7 @@ function AutoTA({ value, onChange, placeholder, minHeight=80, fontSize=12 }) {
   }, [value]);
   return (
     <textarea ref={ref} className="ta" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      style={{ width:"100%", minHeight, background:"rgba(255,255,255,.02)", border:"1px solid rgba(255,255,255,.07)", borderRadius:9, color:"rgba(232,224,212,.85)", fontSize, padding:"12px 13px", fontFamily:"Georgia,serif", resize:"none", lineHeight:1.72, transition:"border-color .2s", overflow:"hidden", display:"block" }} />
+      style={{ width:"100%", minHeight, background:"rgba(255,255,255,.02)", border:"1px solid rgba(255,255,255,.07)", borderRadius:9, color:"rgba(232,224,212,.97)", fontSize, padding:"12px 13px", fontFamily:"Georgia,serif", resize:"none", lineHeight:1.72, transition:"border-color .2s", overflow:"hidden", display:"block" }} />
   );
 }
 
@@ -423,9 +423,9 @@ function FrameInput({ number, label, value, onChange, placeholder }) {
     <div style={{ borderRadius:9, border:`1px solid ${value ? `rgba(${rgb},.28)` : "rgba(255,255,255,.07)"}`, overflow:"hidden", transition:"border-color .2s", background:"rgba(255,255,255,.015)" }}>
       <div style={{ padding:"9px 13px", background:`rgba(${rgb},.07)`, borderBottom:`1px solid rgba(${rgb},.14)`, display:"flex", alignItems:"center", gap:9 }}>
         <div style={{ width:22, height:22, borderRadius:5, background:`rgba(${rgb},.15)`, border:`1px solid rgba(${rgb},.32)`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-          <span style={{ fontSize:11, color:`rgba(${rgb},1)`, fontFamily:"sans-serif", fontWeight:700 }}>{number}</span>
+          <span style={{ fontSize:13, color:`rgba(${rgb},1)`, fontFamily:"sans-serif", fontWeight:700 }}>{number}</span>
         </div>
-        <span style={{ fontSize:10, letterSpacing:".12em", textTransform:"uppercase", fontFamily:"sans-serif", color:`rgba(${rgb},1)`, fontWeight:700 }}>{label}</span>
+        <span style={{ fontSize:12, letterSpacing:".12em", textTransform:"uppercase", fontFamily:"sans-serif", color:`rgba(${rgb},1)`, fontWeight:700 }}>{label}</span>
       </div>
       <textarea ref={ref} className="ta" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
         style={{ width:"100%", minHeight:100, background:"transparent", border:"none", borderRadius:0, color:"#e8e0d4", fontSize:12, padding:"12px 13px", fontFamily:"Georgia,serif", resize:"none", lineHeight:1.72, overflow:"hidden", display:"block", outline:"none" }} />
@@ -446,9 +446,9 @@ function RefZone({ refs, onAdd, onRemove }) {
       {refs.length === 0 ? (
         <div onClick={() => inputRef.current?.click()} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:5, textAlign:"center", cursor:"pointer" }}>
           <div style={{ fontSize:20, opacity:.35 }}>📎</div>
-          <div style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(232,224,212,.35)", fontWeight:700, textTransform:"uppercase", letterSpacing:".08em" }}>Drop references here</div>
-          <div style={{ fontSize:9, color:"rgba(232,224,212,.18)", fontFamily:"sans-serif", fontStyle:"italic" }}>Character, style, mood, environment — anything relevant</div>
-          <div style={{ fontSize:9, color:"rgba(200,160,80,.28)", fontFamily:"sans-serif", marginTop:2 }}>drop or click to browse</div>
+          <div style={{ fontSize:12, fontFamily:"sans-serif", color:"rgba(232,224,212,.35)", fontWeight:700, textTransform:"uppercase", letterSpacing:".08em" }}>Drop references here</div>
+          <div style={{ fontSize:13, color:"rgba(232,224,212,.4)", fontFamily:"sans-serif", fontStyle:"italic" }}>Character, style, mood, environment — anything relevant</div>
+          <div style={{ fontSize:13, color:"rgba(200,160,80,.28)", fontFamily:"sans-serif", marginTop:2 }}>drop or click to browse</div>
         </div>
       ) : (
         <div>
@@ -463,7 +463,7 @@ function RefZone({ refs, onAdd, onRemove }) {
             ))}
             <button onClick={() => inputRef.current?.click()} style={{ width:50, height:50, borderRadius:6, border:"1px dashed rgba(200,160,80,.22)", background:"rgba(200,160,80,.05)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:"rgba(200,160,80,.38)", fontSize:18, flexShrink:0 }}>+</button>
           </div>
-          <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic" }}>{refs.length} reference{refs.length > 1 ? "s" : ""}</div>
+          <div style={{ fontSize:13, color:"rgba(232,224,212,.45)", fontFamily:"sans-serif", fontStyle:"italic" }}>{refs.length} reference{refs.length > 1 ? "s" : ""}</div>
         </div>
       )}
       <input ref={inputRef} type="file" accept="image/*" multiple style={{ display:"none" }} onChange={e => { handleFiles(e.target.files); e.target.value = ""; }} />
@@ -485,32 +485,32 @@ function FramePanel({ number, label, frame, imageUrl, loading, loadingMsg, error
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:9 }}>
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
           <div style={{ width:22, height:22, borderRadius:5, background:accentFaint, border:`1px solid ${accentLine}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-            <span style={{ fontSize:10, color:accent, fontFamily:"sans-serif", fontWeight:700 }}>{number}</span>
+            <span style={{ fontSize:12, color:accent, fontFamily:"sans-serif", fontWeight:700 }}>{number}</span>
           </div>
-          <span style={{ fontSize:11, color:accent, fontFamily:"sans-serif", fontWeight:700, letterSpacing:".12em", textTransform:"uppercase" }}>{label}</span>
+          <span style={{ fontSize:13, color:accent, fontFamily:"sans-serif", fontWeight:700, letterSpacing:".12em", textTransform:"uppercase" }}>{label}</span>
         </div>
         <div style={{ display:"flex", gap:6 }}>
           {frame?.prompt && <CopyBtn text={frame.prompt} />}
-          {imageUrl && <a href={imageUrl} download={`frame-${number}.jpg`} target="_blank" rel="noreferrer" style={{ fontSize:10, padding:"3px 9px", borderRadius:4, background:"rgba(80,130,200,.08)", border:"1px solid rgba(80,130,200,.18)", color:"rgba(130,180,240,.6)", fontFamily:"sans-serif", textDecoration:"none", letterSpacing:".08em", textTransform:"uppercase" }}>↓ Save</a>}
+          {imageUrl && <a href={imageUrl} download={`frame-${number}.jpg`} target="_blank" rel="noreferrer" style={{ fontSize:12, padding:"3px 9px", borderRadius:4, background:"rgba(80,130,200,.08)", border:"1px solid rgba(80,130,200,.18)", color:"rgba(130,180,240,.6)", fontFamily:"sans-serif", textDecoration:"none", letterSpacing:".08em", textTransform:"uppercase" }}>↓ Save</a>}
         </div>
       </div>
-      {frame?.compositionNote && <div style={{ fontSize:10, color:"rgba(232,224,212,.3)", fontFamily:"sans-serif", fontStyle:"italic", marginBottom:8, lineHeight:1.45 }}>{frame.compositionNote}</div>}
+      {frame?.compositionNote && <div style={{ fontSize:12, color:"rgba(232,224,212,.3)", fontFamily:"sans-serif", fontStyle:"italic", marginBottom:8, lineHeight:1.45 }}>{frame.compositionNote}</div>}
       <div style={{ background:"#0d0d0e", borderRadius:9, border:"1px solid rgba(255,255,255,.07)", overflow:"hidden", marginBottom:9, aspectRatio:"16/9", display:"flex", alignItems:"center", justifyContent:"center" }}>
-        {loading && !imageUrl && <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:9 }}><Spin size={16} /><span style={{ fontSize:9, color:accent, letterSpacing:".14em", textTransform:"uppercase", fontFamily:"sans-serif", animation:"pulse 1.6s ease infinite" }}>{loadingMsg || "Rendering…"}</span></div>}
-        {error && !imageUrl && <div style={{ padding:20, textAlign:"center" }}><div style={{ fontSize:18, marginBottom:6 }}>⚠</div><div style={{ fontSize:11, color:"rgba(220,100,100,.6)", fontFamily:"sans-serif" }}>{error}</div></div>}
-        {!loading && !error && !imageUrl && <div style={{ fontSize:11, color:"rgba(255,255,255,.07)", fontFamily:"sans-serif", fontStyle:"italic" }}>Frame {number}</div>}
+        {loading && !imageUrl && <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:9 }}><Spin size={16} /><span style={{ fontSize:13, color:accent, letterSpacing:".14em", textTransform:"uppercase", fontFamily:"sans-serif", animation:"pulse 1.6s ease infinite" }}>{loadingMsg || "Rendering…"}</span></div>}
+        {error && !imageUrl && <div style={{ padding:20, textAlign:"center" }}><div style={{ fontSize:18, marginBottom:6 }}>⚠</div><div style={{ fontSize:13, color:"rgba(220,100,100,.6)", fontFamily:"sans-serif" }}>{error}</div></div>}
+        {!loading && !error && !imageUrl && <div style={{ fontSize:13, color:"rgba(255,255,255,.07)", fontFamily:"sans-serif", fontStyle:"italic" }}>Frame {number}</div>}
         {imageUrl && <img src={imageUrl} alt={label} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />}
       </div>
       {frame?.prompt && (
         <>
           <button onClick={() => setOpen(!open)} style={{ width:"100%", background:accentFaint, border:`1px solid ${accentLine}`, borderRadius:open?"7px 7px 0 0":"7px", padding:"7px 11px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <span style={{ fontSize:10, letterSpacing:".1em", textTransform:"uppercase", fontFamily:"sans-serif", color:accent }}>Generated Prompt</span>
-            <span style={{ fontSize:10, color:accent, opacity:.5 }}>{open ? "−" : "+"}</span>
+            <span style={{ fontSize:12, letterSpacing:".1em", textTransform:"uppercase", fontFamily:"sans-serif", color:accent }}>Generated Prompt</span>
+            <span style={{ fontSize:12, color:accent, opacity:.5 }}>{open ? "−" : "+"}</span>
           </button>
           {open && (
             <div style={{ background:"rgba(255,255,255,.018)", border:`1px solid ${accentLine}`, borderTop:"none", borderRadius:"0 0 7px 7px", padding:"11px 12px" }}>
-              <div style={{ fontSize:11, lineHeight:1.72, color:"rgba(232,224,212,.55)", fontFamily:"sans-serif", marginBottom:9 }}>{frame.prompt}</div>
-              {frame.negativePrompt && <div style={{ paddingTop:8, borderTop:"1px solid rgba(255,255,255,.05)", fontSize:10, color:"rgba(220,150,150,.36)", fontFamily:"sans-serif", lineHeight:1.5 }}>– {frame.negativePrompt}</div>}
+              <div style={{ fontSize:13, lineHeight:1.72, color:"rgba(232,224,212,.8)", fontFamily:"sans-serif", marginBottom:9 }}>{frame.prompt}</div>
+              {frame.negativePrompt && <div style={{ paddingTop:8, borderTop:"1px solid rgba(255,255,255,.05)", fontSize:12, color:"rgba(220,150,150,.36)", fontFamily:"sans-serif", lineHeight:1.5 }}>– {frame.negativePrompt}</div>}
             </div>
           )}
         </>
@@ -528,8 +528,8 @@ function MotionArc({ text }) {
     <div style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 13px", background:"rgba(255,255,255,.02)", border:"1px solid rgba(255,255,255,.055)", borderRadius:7, marginBottom:16 }}>
       <span style={{ fontSize:14, flexShrink:0 }}>↗</span>
       <div>
-        <div style={{ fontSize:9, letterSpacing:".12em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(200,160,80,.45)", marginBottom:2 }}>Motion Arc</div>
-        <div style={{ fontSize:11, color:"rgba(232,224,212,.5)", fontFamily:"sans-serif", fontStyle:"italic", lineHeight:1.4 }}>{text}</div>
+        <div style={{ fontSize:13, letterSpacing:".12em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(200,160,80,.45)", marginBottom:2 }}>Motion Arc</div>
+        <div style={{ fontSize:13, color:"rgba(232,224,212,.5)", fontFamily:"sans-serif", fontStyle:"italic", lineHeight:1.4 }}>{text}</div>
       </div>
     </div>
   );
@@ -545,8 +545,8 @@ function AuditPanel({ audit }) {
     <div>
       <button onClick={() => setOpen(!open)} style={{ display:"flex", alignItems:"center", gap:7, background:"none", border:"none", cursor:"pointer", padding:0 }}>
         <span style={{ width:7, height:7, borderRadius:"50%", background:allOk?"#5cb87a":"#c8a050", flexShrink:0 }} />
-        <span style={{ fontSize:10, fontFamily:"sans-serif", letterSpacing:".1em", textTransform:"uppercase", color:allOk?"rgba(80,180,120,.7)":"rgba(200,160,80,.7)" }}>{allOk?"All checks passed":`${issues.length} audit note${issues.length>1?"s":""}`}</span>
-        <span style={{ fontSize:9, color:"rgba(232,224,212,.2)", fontFamily:"sans-serif" }}>{open?"▲":"▼"}</span>
+        <span style={{ fontSize:12, fontFamily:"sans-serif", letterSpacing:".1em", textTransform:"uppercase", color:allOk?"rgba(80,180,120,.7)":"rgba(200,160,80,.7)" }}>{allOk?"All checks passed":`${issues.length} audit note${issues.length>1?"s":""}`}</span>
+        <span style={{ fontSize:13, color:"rgba(232,224,212,.2)", fontFamily:"sans-serif" }}>{open?"▲":"▼"}</span>
       </button>
       {open && (
         <div style={{ marginTop:9, padding:"11px 13px", background:"rgba(255,255,255,.02)", border:"1px solid rgba(255,255,255,.06)", borderRadius:8, display:"grid", gap:7 }}>
@@ -555,8 +555,8 @@ function AuditPanel({ audit }) {
             const ok = val==="confirmed"||val==="not applicable"||val.startsWith("confirmed");
             return (
               <div key={k} style={{ display:"flex", alignItems:"flex-start", gap:7 }}>
-                <span style={{ fontSize:11, color:ok?"rgba(80,180,120,.65)":"rgba(200,160,80,.7)", flexShrink:0, marginTop:.5 }}>{ok?"✓":"⚠"}</span>
-                <div><span style={{ fontSize:10, fontFamily:"sans-serif", fontWeight:700, color:"rgba(232,224,212,.45)", textTransform:"uppercase", letterSpacing:".07em" }}>{l} </span><span style={{ fontSize:10, fontFamily:"sans-serif", color:ok?"rgba(232,224,212,.32)":"rgba(232,224,212,.55)", fontStyle:"italic" }}>{val}</span></div>
+                <span style={{ fontSize:13, color:ok?"rgba(80,180,120,.65)":"rgba(200,160,80,.7)", flexShrink:0, marginTop:.5 }}>{ok?"✓":"⚠"}</span>
+                <div><span style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:"rgba(232,224,212,.45)", textTransform:"uppercase", letterSpacing:".07em" }}>{l} </span><span style={{ fontSize:12, fontFamily:"sans-serif", color:ok?"rgba(232,224,212,.6)":"rgba(232,224,212,.8)", fontStyle:"italic" }}>{val}</span></div>
               </div>
             );
           })}
@@ -574,11 +574,11 @@ function WeavyPanel({ shot, threadUrl, messages, onCheckFeedback, onClose, check
     <div style={{ position:"absolute", inset:0, background:"#0f0f11", borderLeft:"1px solid rgba(255,255,255,.07)", display:"flex", flexDirection:"column", animation:"slideIn .25s ease", zIndex:10 }}>
       <div style={{ padding:"14px 18px", borderBottom:"1px solid rgba(255,255,255,.07)", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
         <div>
-          <div style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:"rgba(80,180,120,.8)" }}>💬 Weavy Review Thread</div>
-          {shot?.sceneSlug && <div style={{ fontSize:10, color:"rgba(232,224,212,.28)", fontFamily:"monospace", marginTop:3 }}>{shot.sceneSlug}</div>}
+          <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:"rgba(80,180,120,.8)" }}>💬 Weavy Review Thread</div>
+          {shot?.sceneSlug && <div style={{ fontSize:12, color:"rgba(232,224,212,.8)", fontFamily:"monospace", marginTop:3 }}>{shot.sceneSlug}</div>}
         </div>
         <div style={{ display:"flex", gap:8 }}>
-          {threadUrl && <a href={threadUrl} target="_blank" rel="noreferrer" style={{ fontSize:10, padding:"5px 12px", borderRadius:5, background:"rgba(80,180,120,.1)", border:"1px solid rgba(80,180,120,.25)", color:"rgba(80,180,120,.8)", fontFamily:"sans-serif", textDecoration:"none", letterSpacing:".08em", textTransform:"uppercase" }}>Open ↗</a>}
+          {threadUrl && <a href={threadUrl} target="_blank" rel="noreferrer" style={{ fontSize:12, padding:"5px 12px", borderRadius:5, background:"rgba(80,180,120,.1)", border:"1px solid rgba(80,180,120,.25)", color:"rgba(80,180,120,.8)", fontFamily:"sans-serif", textDecoration:"none", letterSpacing:".08em", textTransform:"uppercase" }}>Open ↗</a>}
           <button onClick={onClose} style={{ background:"none", border:"none", color:"rgba(232,224,212,.3)", cursor:"pointer", fontSize:18 }}>×</button>
         </div>
       </div>
@@ -589,18 +589,18 @@ function WeavyPanel({ shot, threadUrl, messages, onCheckFeedback, onClose, check
             return (
               <div key={i} style={{ padding:"11px 14px", background:isAgent?"rgba(200,160,80,.05)":"rgba(80,130,200,.05)", border:`1px solid ${isAgent?"rgba(200,160,80,.12)":"rgba(80,130,200,.12)"}`, borderRadius:8 }}>
                 <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                  <span style={{ fontSize:9, fontFamily:"sans-serif", fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:isAgent?"rgba(200,160,80,.55)":"rgba(130,180,240,.55)" }}>{isAgent?"Director Agent":msg.created_by?.display_name||"Director"}</span>
-                  <span style={{ fontSize:9, color:"rgba(232,224,212,.2)", fontFamily:"sans-serif" }}>{msg.created_at?new Date(msg.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""}</span>
+                  <span style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:isAgent?"rgba(200,160,80,.55)":"rgba(130,180,240,.55)" }}>{isAgent?"Director Agent":msg.created_by?.display_name||"Director"}</span>
+                  <span style={{ fontSize:13, color:"rgba(232,224,212,.2)", fontFamily:"sans-serif" }}>{msg.created_at?new Date(msg.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""}</span>
                 </div>
-                <div style={{ fontSize:11, color:"rgba(232,224,212,.65)", fontFamily:"sans-serif", lineHeight:1.65, whiteSpace:"pre-wrap" }}>{msg.plain||msg.text||""}</div>
+                <div style={{ fontSize:13, color:"rgba(232,224,212,.65)", fontFamily:"sans-serif", lineHeight:1.65, whiteSpace:"pre-wrap" }}>{msg.plain||msg.text||""}</div>
               </div>
             );
           })
         }
       </div>
       <div style={{ padding:"14px 18px", borderTop:"1px solid rgba(255,255,255,.07)", flexShrink:0 }}>
-        {feedbackFound && <div style={{ marginBottom:10, padding:"9px 12px", background:"rgba(80,180,120,.07)", border:"1px solid rgba(80,180,120,.18)", borderRadius:7, fontSize:11, color:"rgba(80,180,120,.8)", fontFamily:"sans-serif" }}>✓ Feedback found — regenerating. Close panel to see new frames.</div>}
-        <button onClick={onCheckFeedback} disabled={checkingFeedback} style={{ width:"100%", padding:"11px", borderRadius:7, border:"1px solid rgba(80,180,120,.35)", background:"rgba(80,180,120,.1)", color:checkingFeedback?"rgba(80,180,120,.4)":"rgba(80,180,120,.85)", fontSize:11, letterSpacing:".12em", textTransform:"uppercase", fontFamily:"sans-serif", fontWeight:700, cursor:checkingFeedback?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+        {feedbackFound && <div style={{ marginBottom:10, padding:"9px 12px", background:"rgba(80,180,120,.07)", border:"1px solid rgba(80,180,120,.18)", borderRadius:7, fontSize:13, color:"rgba(80,180,120,.8)", fontFamily:"sans-serif" }}>✓ Feedback found — regenerating. Close panel to see new frames.</div>}
+        <button onClick={onCheckFeedback} disabled={checkingFeedback} style={{ width:"100%", padding:"11px", borderRadius:7, border:"1px solid rgba(80,180,120,.35)", background:"rgba(80,180,120,.1)", color:checkingFeedback?"rgba(80,180,120,.4)":"rgba(80,180,120,.85)", fontSize:13, letterSpacing:".12em", textTransform:"uppercase", fontFamily:"sans-serif", fontWeight:700, cursor:checkingFeedback?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
           {checkingFeedback ? <><Spin />Checking…</> : "↺ Check for Director Feedback"}
         </button>
       </div>
@@ -617,19 +617,19 @@ function LogStrip({ log, onSelect }) {
     <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:50 }}>
       <div style={{ display:"flex", justifyContent:"center" }}>
         <button onClick={() => setOpen(!open)} style={{ background:"#17171a", border:"1px solid rgba(255,255,255,.08)", borderBottom:"none", borderRadius:"8px 8px 0 0", padding:"5px 18px", cursor:"pointer", display:"flex", alignItems:"center", gap:8 }}>
-          <span style={{ fontSize:9, letterSpacing:".15em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(232,224,212,.3)" }}>Shot Log</span>
-          <span style={{ fontSize:10, padding:"1px 6px", background:"rgba(200,160,80,.1)", borderRadius:10, color:"rgba(200,160,80,.6)", fontFamily:"sans-serif" }}>{log.length}</span>
-          <span style={{ fontSize:9, color:"rgba(232,224,212,.2)" }}>{open?"▼":"▲"}</span>
+          <span style={{ fontSize:13, letterSpacing:".15em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(232,224,212,.3)" }}>Shot Log</span>
+          <span style={{ fontSize:12, padding:"1px 6px", background:"rgba(200,160,80,.1)", borderRadius:10, color:"rgba(200,160,80,.6)", fontFamily:"sans-serif" }}>{log.length}</span>
+          <span style={{ fontSize:13, color:"rgba(232,224,212,.2)" }}>{open?"▼":"▲"}</span>
         </button>
       </div>
       {open && (
         <div style={{ background:"#131315", borderTop:"1px solid rgba(255,255,255,.07)", maxHeight:180, overflowX:"auto", overflowY:"hidden" }}>
-          {log.length === 0 ? <div style={{ padding:"18px", textAlign:"center", fontSize:11, color:"rgba(232,224,212,.18)", fontFamily:"sans-serif", fontStyle:"italic" }}>No shots yet</div>
+          {log.length === 0 ? <div style={{ padding:"18px", textAlign:"center", fontSize:13, color:"rgba(232,224,212,.4)", fontFamily:"sans-serif", fontStyle:"italic" }}>No shots yet</div>
             : <div style={{ display:"flex", padding:"12px 16px", minWidth:"max-content", gap:10 }}>
                 {log.map((s, i) => (
                   <button key={i} onClick={() => { setOpen(false); onSelect(s); }} style={{ background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.07)", borderRadius:7, padding:"8px 12px", cursor:"pointer", textAlign:"left", minWidth:175 }}>
-                    <div style={{ fontSize:9, color:"rgba(200,160,80,.45)", fontFamily:"sans-serif", marginBottom:4 }}>#{i+1} · {s.sceneSlug||"—"}</div>
-                    <div style={{ fontSize:11, color:"rgba(232,224,212,.5)", fontFamily:"sans-serif", fontStyle:"italic", lineHeight:1.35 }}>{(s.shotSummary||"").slice(0,65)}{(s.shotSummary||"").length>65?"…":""}</div>
+                    <div style={{ fontSize:13, color:"rgba(200,160,80,.45)", fontFamily:"sans-serif", marginBottom:4 }}>#{i+1} · {s.sceneSlug||"—"}</div>
+                    <div style={{ fontSize:13, color:"rgba(232,224,212,.5)", fontFamily:"sans-serif", fontStyle:"italic", lineHeight:1.35 }}>{(s.shotSummary||"").slice(0,65)}{(s.shotSummary||"").length>65?"…":""}</div>
                   </button>
                 ))}
               </div>
@@ -663,11 +663,11 @@ function Settings({ s, set, onClose }) {
               <span style={{ fontSize:16 }}>🧠</span>
               <div>
                 <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:"rgba(200,160,80,.85)", letterSpacing:".06em" }}>Claude API</div>
-                <div style={{ fontSize:10, color:"rgba(232,224,212,.28)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:2 }}>Prompt architect — writes your bible-locked prompts</div>
+                <div style={{ fontSize:12, color:"rgba(232,224,212,.8)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:2 }}>Prompt architect — writes your bible-locked prompts</div>
               </div>
             </div>
             <SLabel>API Key</SLabel>
-            <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginBottom:7 }}>console.anthropic.com → API Keys</div>
+            <div style={{ fontSize:13, color:"rgba(232,224,212,.45)", fontFamily:"sans-serif", fontStyle:"italic", marginBottom:7 }}>console.anthropic.com → API Keys</div>
             <SecretInput value={s.claudeKey} onChange={v => upd("claudeKey", v)} placeholder="sk-ant-…" />
           </div>
 
@@ -677,19 +677,19 @@ function Settings({ s, set, onClose }) {
               <span style={{ fontSize:18 }}>🎨</span>
               <div>
                 <div style={{ fontSize:13, fontFamily:"sans-serif", fontWeight:700, color:"rgba(180,130,255,.85)", letterSpacing:".06em" }}>ComfyUI</div>
-                <div style={{ fontSize:10, color:"rgba(232,224,212,.28)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:2 }}>Primary production renderer</div>
+                <div style={{ fontSize:12, color:"rgba(232,224,212,.8)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:2 }}>Primary production renderer</div>
               </div>
             </div>
             <div style={{ display:"grid", gap:12 }}>
               <div>
                 <SLabel>Server URL</SLabel>
                 <TextInput value={s.comfyUrl} onChange={v => upd("comfyUrl", v)} placeholder="http://127.0.0.1:8188" />
-                <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:4 }}>ComfyUI Desktop default: http://127.0.0.1:8188</div>
+                <div style={{ fontSize:13, color:"rgba(232,224,212,.45)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:4 }}>ComfyUI Desktop default: http://127.0.0.1:8188</div>
               </div>
               <div>
                 <SLabel>Model / Checkpoint</SLabel>
                 <TextInput value={s.comfyModel} onChange={v => upd("comfyModel", v)} placeholder="FLUX1/flux1-dev-fp8.safetensors" />
-                <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:4 }}>Include subfolder — e.g. FLUX1/flux1-dev-fp8.safetensors</div>
+                <div style={{ fontSize:13, color:"rgba(232,224,212,.45)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:4 }}>Include subfolder — e.g. FLUX1/flux1-dev-fp8.safetensors</div>
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                 <div><SLabel>Steps</SLabel><input type="number" min={1} max={50} value={s.comfySteps} onChange={e => upd("comfySteps", Number(e.target.value))} style={{ width:"100%", background:"rgba(255,255,255,.04)", border:"1px solid rgba(255,255,255,.07)", borderRadius:6, color:"#e8e0d4", fontSize:12, padding:"9px 11px", outline:"none" }} /></div>
@@ -705,18 +705,18 @@ function Settings({ s, set, onClose }) {
                     </button>
                   ))}
                 </div>
-                <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:5 }}>{s.comfyWidth} × {s.comfyHeight}px</div>
+                <div style={{ fontSize:13, color:"rgba(232,224,212,.45)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:5 }}>{s.comfyWidth} × {s.comfyHeight}px</div>
               </div>
-              <div style={{ padding:"9px 11px", background:"rgba(130,80,200,.08)", border:"1px solid rgba(130,80,200,.2)", borderRadius:7, fontSize:10, color:"rgba(180,130,255,.75)", fontFamily:"sans-serif", lineHeight:1.6 }}>
+              <div style={{ padding:"9px 11px", background:"rgba(130,80,200,.08)", border:"1px solid rgba(130,80,200,.2)", borderRadius:7, fontSize:12, color:"rgba(180,130,255,.75)", fontFamily:"sans-serif", lineHeight:1.6 }}>
                 🎨 Flux.1 locked: CFG 1.0 · euler · simple scheduler · FluxGuidance node
               </div>
               <div>
                 <SLabel>Custom Workflow JSON <span style={{ color:"rgba(232,224,212,.3)", fontWeight:400, textTransform:"none", letterSpacing:0 }}>— optional</span></SLabel>
                 <textarea value={s.comfyWorkflow} onChange={e => { upd("comfyWorkflow", e.target.value); try { JSON.parse(e.target.value); setJsonError(null); } catch(err) { setJsonError(err.message); } }}
                   placeholder={'{\n  "1": { "class_type": "CheckpointLoaderSimple", ... }\n}'}
-                  style={{ width:"100%", minHeight:90, background:"rgba(255,255,255,.04)", border:`1px solid ${jsonError?"rgba(200,80,80,.4)":"rgba(255,255,255,.07)"}`, borderRadius:6, color:"#e8e0d4", fontSize:11, padding:"9px 11px", fontFamily:"monospace", outline:"none", resize:"vertical", lineHeight:1.5, marginTop:6 }} />
-                {jsonError && <div style={{ fontSize:10, color:"rgba(220,100,100,.7)", fontFamily:"sans-serif", marginTop:4 }}>⚠ {jsonError}</div>}
-                {s.comfyWorkflow && !jsonError && <div style={{ fontSize:10, color:"rgba(80,180,120,.6)", fontFamily:"sans-serif", marginTop:4 }}>✓ Valid workflow JSON</div>}
+                  style={{ width:"100%", minHeight:90, background:"rgba(255,255,255,.04)", border:`1px solid ${jsonError?"rgba(200,80,80,.4)":"rgba(255,255,255,.07)"}`, borderRadius:6, color:"#e8e0d4", fontSize:13, padding:"9px 11px", fontFamily:"monospace", outline:"none", resize:"vertical", lineHeight:1.5, marginTop:6 }} />
+                {jsonError && <div style={{ fontSize:12, color:"rgba(220,100,100,.7)", fontFamily:"sans-serif", marginTop:4 }}>⚠ {jsonError}</div>}
+                {s.comfyWorkflow && !jsonError && <div style={{ fontSize:12, color:"rgba(80,180,120,.6)", fontFamily:"sans-serif", marginTop:4 }}>✓ Valid workflow JSON</div>}
               </div>
             </div>
           </div>
@@ -727,7 +727,7 @@ function Settings({ s, set, onClose }) {
               <span style={{ fontSize:16 }}>👁</span>
               <div>
                 <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:"rgba(232,224,212,.65)", letterSpacing:".06em" }}>Quick Preview</div>
-                <div style={{ fontSize:10, color:"rgba(232,224,212,.28)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:2 }}>Fast iteration before sending to ComfyUI</div>
+                <div style={{ fontSize:12, color:"rgba(232,224,212,.8)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:2 }}>Fast iteration before sending to ComfyUI</div>
               </div>
             </div>
             <div style={{ display:"grid", gap:10 }}>
@@ -737,8 +737,8 @@ function Settings({ s, set, onClose }) {
                   {Object.entries(PREVIEW_PROVIDERS).map(([k, p]) => (
                     <button key={k} onClick={() => upd("previewProvider", k)}
                       style={{ padding:"9px 8px", borderRadius:7, border:`1px solid ${s.previewProvider===k?"rgba(200,160,80,.38)":"rgba(255,255,255,.07)"}`, background:s.previewProvider===k?"rgba(200,160,80,.08)":"rgba(255,255,255,.02)", cursor:"pointer", textAlign:"center" }}>
-                      <div style={{ fontSize:11, fontFamily:"sans-serif", color:s.previewProvider===k?"#c8a050":"rgba(232,224,212,.55)", fontWeight:700 }}>{p.icon}</div>
-                      <div style={{ fontSize:10, fontFamily:"sans-serif", color:s.previewProvider===k?"#c8a050":"rgba(232,224,212,.4)", marginTop:2 }}>{p.label}</div>
+                      <div style={{ fontSize:13, fontFamily:"sans-serif", color:s.previewProvider===k?"#c8a050":"rgba(232,224,212,.8)", fontWeight:700 }}>{p.icon}</div>
+                      <div style={{ fontSize:12, fontFamily:"sans-serif", color:s.previewProvider===k?"#c8a050":"rgba(232,224,212,.4)", marginTop:2 }}>{p.label}</div>
                     </button>
                   ))}
                 </div>
@@ -754,8 +754,8 @@ function Settings({ s, set, onClose }) {
                         <button key={m.id} onClick={() => upd(s.previewProvider==="nanobanana"?"nbModel":"falModel", m.id)}
                           style={{ padding:"9px 11px", borderRadius:7, border:`1px solid ${active?"rgba(200,160,80,.35)":"rgba(255,255,255,.06)"}`, background:active?"rgba(200,160,80,.08)":"rgba(255,255,255,.02)", cursor:"pointer", textAlign:"left", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                           <div>
-                            <div style={{ fontSize:11, fontFamily:"sans-serif", color:active?"#c8a050":"rgba(232,224,212,.58)", fontWeight:700 }}>{m.label}</div>
-                            <div style={{ fontSize:10, color:"rgba(232,224,212,.28)", fontFamily:"sans-serif", marginTop:1 }}>{m.desc}</div>
+                            <div style={{ fontSize:13, fontFamily:"sans-serif", color:active?"#c8a050":"rgba(232,224,212,.58)", fontWeight:700 }}>{m.label}</div>
+                            <div style={{ fontSize:12, color:"rgba(232,224,212,.8)", fontFamily:"sans-serif", marginTop:1 }}>{m.desc}</div>
                           </div>
                           {active && <span style={{ color:"#c8a050", fontSize:12 }}>✓</span>}
                         </button>
@@ -768,17 +768,17 @@ function Settings({ s, set, onClose }) {
               <div>
                 {s.previewProvider === "gemini" && (
                   <><SLabel>Google AI Studio API Key</SLabel>
-                  <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginBottom:7 }}>aistudio.google.com → Get API Key</div>
+                  <div style={{ fontSize:13, color:"rgba(232,224,212,.45)", fontFamily:"sans-serif", fontStyle:"italic", marginBottom:7 }}>aistudio.google.com → Get API Key</div>
                   <SecretInput value={s.geminiKey} onChange={v => upd("geminiKey", v)} placeholder="AIza…" /></>
                 )}
                 {s.previewProvider === "nanobanana" && (
                   <><SLabel>NanoBanana API Key</SLabel>
-                  <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginBottom:7 }}>nananobanana.com → Settings → API Keys</div>
+                  <div style={{ fontSize:13, color:"rgba(232,224,212,.45)", fontFamily:"sans-serif", fontStyle:"italic", marginBottom:7 }}>nananobanana.com → Settings → API Keys</div>
                   <SecretInput value={s.nbKey} onChange={v => upd("nbKey", v)} placeholder="nb_…" /></>
                 )}
                 {s.previewProvider === "fal" && (
                   <><SLabel>fal.ai API Key</SLabel>
-                  <div style={{ fontSize:9, color:"rgba(232,224,212,.22)", fontFamily:"sans-serif", fontStyle:"italic", marginBottom:7 }}>fal.ai/dashboard/keys</div>
+                  <div style={{ fontSize:13, color:"rgba(232,224,212,.45)", fontFamily:"sans-serif", fontStyle:"italic", marginBottom:7 }}>fal.ai/dashboard/keys</div>
                   <SecretInput value={s.falKey} onChange={v => upd("falKey", v)} placeholder="fal_…" /></>
                 )}
               </div>
@@ -798,7 +798,7 @@ function Settings({ s, set, onClose }) {
               <span style={{ fontSize:16 }}>💬</span>
               <div>
                 <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:"rgba(80,180,120,.85)", letterSpacing:".06em" }}>Weavy Review</div>
-                <div style={{ fontSize:10, color:"rgba(232,224,212,.28)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:2 }}>Shot threads + feedback-to-regenerate</div>
+                <div style={{ fontSize:12, color:"rgba(232,224,212,.8)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:2 }}>Shot threads + feedback-to-regenerate</div>
               </div>
             </div>
             <div style={{ display:"grid", gap:10 }}>
@@ -1102,34 +1102,34 @@ export default function App() {
       <nav style={{ height:50, borderBottom:"1px solid rgba(255,255,255,.065)", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 22px", position:"sticky", top:0, background:"rgba(9,9,10,.96)", backdropFilter:"blur(8px)", zIndex:100 }}>
         <div style={{ display:"flex", alignItems:"baseline", gap:10 }}>
           <span style={{ fontSize:14, fontWeight:400, letterSpacing:".08em" }}>DIRECTOR AGENT</span>
-          <span style={{ fontSize:9, letterSpacing:".16em", color:"rgba(200,160,80,.38)", textTransform:"uppercase", fontFamily:"sans-serif" }}>Start · End Frame</span>
+          <span style={{ fontSize:13, letterSpacing:".16em", color:"rgba(200,160,80,.38)", textTransform:"uppercase", fontFamily:"sans-serif" }}>Start · End Frame</span>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
           <div style={{ display:"flex", gap:10, alignItems:"center" }}>
             <div style={{ display:"flex", alignItems:"center", gap:5 }}>
               <span style={{ width:6, height:6, borderRadius:"50%", background:claudeKey.trim()?"#5cb87a":"rgba(200,80,80,.5)" }} />
-              <span style={{ fontSize:10, color:"rgba(232,224,212,.28)", fontFamily:"sans-serif" }}>{claudeKey.trim() ? "Claude connected" : "No Claude key"}</span>
+              <span style={{ fontSize:12, color:"rgba(232,224,212,.8)", fontFamily:"sans-serif" }}>{claudeKey.trim() ? "Claude connected" : "No Claude key"}</span>
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:5 }}>
               <span style={{ width:6, height:6, borderRadius:"50%", background:previewAvailable?"rgba(200,160,80,.6)":"rgba(255,255,255,.12)" }} />
-              <span style={{ fontSize:10, color:"rgba(232,224,212,.28)", fontFamily:"sans-serif" }}>{previewAvailable ? providerLabel : "No preview key"}</span>
+              <span style={{ fontSize:12, color:"rgba(232,224,212,.8)", fontFamily:"sans-serif" }}>{previewAvailable ? providerLabel : "No preview key"}</span>
             </div>
             {comfyConfigured && <div style={{ display:"flex", alignItems:"center", gap:5 }}>
               <span style={{ width:6, height:6, borderRadius:"50%", background:"rgba(180,130,255,.7)" }} />
-              <span style={{ fontSize:10, color:"rgba(232,224,212,.28)", fontFamily:"sans-serif" }}>ComfyUI</span>
+              <span style={{ fontSize:12, color:"rgba(232,224,212,.8)", fontFamily:"sans-serif" }}>ComfyUI</span>
             </div>}
             {weavyConfigured && <div style={{ display:"flex", alignItems:"center", gap:5 }}>
               <span style={{ width:6, height:6, borderRadius:"50%", background:weavyStatus==="ok"?"#5cb87a":weavyPosting?"#c8a050":"rgba(80,180,120,.4)" }} />
-              <span style={{ fontSize:10, color:"rgba(232,224,212,.28)", fontFamily:"sans-serif" }}>Weavy</span>
+              <span style={{ fontSize:12, color:"rgba(232,224,212,.8)", fontFamily:"sans-serif" }}>Weavy</span>
             </div>}
           </div>
           {weavyAppUid && weavyConfigured && (
             <button onClick={() => setShowWeavyPanel(!showWeavyPanel)}
-              style={{ background:showWeavyPanel?"rgba(80,180,120,.15)":"rgba(80,180,120,.07)", border:"1px solid rgba(80,180,120,.28)", borderRadius:6, padding:"5px 13px", cursor:"pointer", fontSize:10, letterSpacing:".1em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(80,180,120,.85)" }}>
+              style={{ background:showWeavyPanel?"rgba(80,180,120,.15)":"rgba(80,180,120,.07)", border:"1px solid rgba(80,180,120,.28)", borderRadius:6, padding:"5px 13px", cursor:"pointer", fontSize:12, letterSpacing:".1em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(80,180,120,.85)" }}>
               💬 {showWeavyPanel ? "Hide" : "Review"}
             </button>
           )}
-          <button onClick={() => setShowSettings(true)} style={{ background:"rgba(255,255,255,.04)", border:"1px solid rgba(255,255,255,.08)", borderRadius:6, padding:"5px 13px", cursor:"pointer", fontSize:10, letterSpacing:".1em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(232,224,212,.45)" }}>⚙ Settings</button>
+          <button onClick={() => setShowSettings(true)} style={{ background:"rgba(255,255,255,.04)", border:"1px solid rgba(255,255,255,.08)", borderRadius:6, padding:"5px 13px", cursor:"pointer", fontSize:12, letterSpacing:".1em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(232,224,212,.45)" }}>⚙ Settings</button>
         </div>
       </nav>
 
@@ -1163,13 +1163,13 @@ export default function App() {
           {/* Generate buttons */}
           <div style={{ display:"grid", gap:9 }}>
             <button onClick={() => handleGenerate("comfy")} disabled={!canGenerate || !comfyConfigured}
-              style={{ width:"100%", padding:"14px", borderRadius:8, border:`1px solid ${canGenerate&&comfyConfigured?"rgba(130,80,200,.5)":"rgba(255,255,255,.06)"}`, background:canGenerate&&comfyConfigured?"rgba(130,80,200,.15)":"rgba(255,255,255,.018)", color:canGenerate&&comfyConfigured?"rgba(180,130,255,.95)":"rgba(232,224,212,.18)", fontSize:11, letterSpacing:".16em", textTransform:"uppercase", fontFamily:"sans-serif", fontWeight:700, cursor:canGenerate&&comfyConfigured?"pointer":"not-allowed", transition:"all .25s", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+              style={{ width:"100%", padding:"14px", borderRadius:8, border:`1px solid ${canGenerate&&comfyConfigured?"rgba(130,80,200,.5)":"rgba(255,255,255,.06)"}`, background:canGenerate&&comfyConfigured?"rgba(130,80,200,.15)":"rgba(255,255,255,.018)", color:canGenerate&&comfyConfigured?"rgba(180,130,255,.95)":"rgba(232,224,212,.4)", fontSize:13, letterSpacing:".16em", textTransform:"uppercase", fontFamily:"sans-serif", fontWeight:700, cursor:canGenerate&&comfyConfigured?"pointer":"not-allowed", transition:"all .25s", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
               {busy && activeRenderMode==="comfy" ? <><Spin />Rendering in ComfyUI…</> : "🎨 Generate via ComfyUI"}
             </button>
-            {!comfyConfigured && <p style={{ fontSize:9, color:"rgba(180,130,255,.4)", fontFamily:"sans-serif", textAlign:"center", marginTop:-4, fontStyle:"italic" }}>Add ComfyUI server URL in Settings</p>}
+            {!comfyConfigured && <p style={{ fontSize:13, color:"rgba(180,130,255,.4)", fontFamily:"sans-serif", textAlign:"center", marginTop:-4, fontStyle:"italic" }}>Add ComfyUI server URL in Settings</p>}
 
             <button onClick={() => handleGenerate("preview")} disabled={!canGenerate || !previewAvailable}
-              style={{ width:"100%", padding:"12px", borderRadius:8, border:`1px solid ${canGenerate&&previewAvailable?"rgba(200,160,80,.38)":"rgba(255,255,255,.05)"}`, background:canGenerate&&previewAvailable?"rgba(200,160,80,.1)":"rgba(255,255,255,.012)", color:canGenerate&&previewAvailable?"rgba(200,160,80,.85)":"rgba(232,224,212,.15)", fontSize:11, letterSpacing:".14em", textTransform:"uppercase", fontFamily:"sans-serif", fontWeight:700, cursor:canGenerate&&previewAvailable?"pointer":"not-allowed", transition:"all .25s", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+              style={{ width:"100%", padding:"12px", borderRadius:8, border:`1px solid ${canGenerate&&previewAvailable?"rgba(200,160,80,.38)":"rgba(255,255,255,.05)"}`, background:canGenerate&&previewAvailable?"rgba(200,160,80,.1)":"rgba(255,255,255,.012)", color:canGenerate&&previewAvailable?"rgba(200,160,80,.85)":"rgba(232,224,212,.15)", fontSize:13, letterSpacing:".14em", textTransform:"uppercase", fontFamily:"sans-serif", fontWeight:700, cursor:canGenerate&&previewAvailable?"pointer":"not-allowed", transition:"all .25s", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
               {busy && activeRenderMode==="preview" ? <><Spin />Generating preview…</> : `👁 Quick Preview — ${providerLabel}`}
             </button>
 
@@ -1185,7 +1185,7 @@ export default function App() {
                     <div style={{ fontSize:12, color:"#c8a050", fontFamily:"sans-serif", fontWeight:700 }}>
                       {genBusy ? "Claude is writing your prompts…" : `Rendering via ${activeRenderMode === "comfy" ? "ComfyUI" : providerLabel}…`}
                     </div>
-                    <div style={{ fontSize:10, color:"rgba(232,224,212,.38)", fontFamily:"sans-serif", marginTop:3 }}>
+                    <div style={{ fontSize:12, color:"rgba(232,224,212,.38)", fontFamily:"sans-serif", marginTop:3 }}>
                       {genBusy ? "Applying Visual Bible · Compliance check · Building frame pair" : activeRenderMode === "comfy" ? "Sent to ComfyUI — polling for result…" : "Generating start + end frames in parallel"}
                     </div>
                   </div>
@@ -1194,7 +1194,7 @@ export default function App() {
             )}
 
             {!canGenerate && !busy && (
-              <p style={{ fontSize:9, color:"rgba(232,224,212,.18)", fontFamily:"sans-serif", textAlign:"center", fontStyle:"italic" }}>
+              <p style={{ fontSize:13, color:"rgba(232,224,212,.4)", fontFamily:"sans-serif", textAlign:"center", fontStyle:"italic" }}>
                 {!claudeKey.trim() ? "Add your Claude API key in Settings"
                   : !bible.trim() ? "Add your Visual Bible to continue"
                   : !frame1.trim() ? "Describe Frame 1 to continue"
@@ -1204,7 +1204,7 @@ export default function App() {
               </p>
             )}
 
-            {genError && <div style={{ padding:"10px 12px", background:"rgba(180,60,60,.09)", border:"1px solid rgba(180,60,60,.2)", borderRadius:7, fontSize:11, color:"#e08080", fontFamily:"sans-serif", lineHeight:1.5 }}>{genError}</div>}
+            {genError && <div style={{ padding:"10px 12px", background:"rgba(180,60,60,.09)", border:"1px solid rgba(180,60,60,.2)", borderRadius:7, fontSize:13, color:"#e08080", fontFamily:"sans-serif", lineHeight:1.5 }}>{genError}</div>}
           </div>
         </div>
 
@@ -1224,12 +1224,12 @@ export default function App() {
                   <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:12, flexWrap:"wrap" }}>
                     <div>
                       <div style={{ fontSize:14, color:"#e8e0d4", lineHeight:1.45, marginBottom:4 }}>{shot.shotSummary}</div>
-                      <div style={{ fontSize:11, color:"rgba(232,224,212,.32)", fontFamily:"sans-serif", fontStyle:"italic", lineHeight:1.5 }}>{shot.sharedContext}</div>
+                      <div style={{ fontSize:13, color:"rgba(232,224,212,.6)", fontFamily:"sans-serif", fontStyle:"italic", lineHeight:1.5 }}>{shot.sharedContext}</div>
                     </div>
-                    {version > 1 && <span style={{ fontSize:10, padding:"3px 9px", background:"rgba(200,160,80,.1)", border:"1px solid rgba(200,160,80,.22)", borderRadius:20, color:"rgba(200,160,80,.7)", fontFamily:"sans-serif", flexShrink:0 }}>v{version}</span>}
+                    {version > 1 && <span style={{ fontSize:12, padding:"3px 9px", background:"rgba(200,160,80,.1)", border:"1px solid rgba(200,160,80,.22)", borderRadius:20, color:"rgba(200,160,80,.7)", fontFamily:"sans-serif", flexShrink:0 }}>v{version}</span>}
                   </div>
                   {shot.feedbackApplied && shot.feedbackApplied !== "null" && (
-                    <div style={{ marginTop:9, padding:"8px 12px", background:"rgba(80,180,120,.06)", border:"1px solid rgba(80,180,120,.15)", borderRadius:6, fontSize:11, color:"rgba(80,180,120,.75)", fontFamily:"sans-serif" }}>📝 {shot.feedbackApplied}</div>
+                    <div style={{ marginTop:9, padding:"8px 12px", background:"rgba(80,180,120,.06)", border:"1px solid rgba(80,180,120,.15)", borderRadius:6, fontSize:13, color:"rgba(80,180,120,.75)", fontFamily:"sans-serif" }}>📝 {shot.feedbackApplied}</div>
                   )}
                 </div>
 
@@ -1243,10 +1243,10 @@ export default function App() {
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
                   <AuditPanel audit={shot.auditResult} />
                   <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
-                    {!busy && comfyConfigured && <button onClick={() => handleRerender("comfy")} style={{ background:"rgba(130,80,200,.1)", border:"1px solid rgba(130,80,200,.28)", borderRadius:6, color:"rgba(180,130,255,.75)", padding:"6px 12px", fontSize:10, letterSpacing:".1em", textTransform:"uppercase", cursor:"pointer", fontFamily:"sans-serif" }}>🎨 Re-render Comfy</button>}
-                    {!busy && previewAvailable && <button onClick={() => handleRerender("preview")} style={{ background:"transparent", border:"1px solid rgba(200,160,80,.2)", borderRadius:6, color:"rgba(200,160,80,.55)", padding:"6px 12px", fontSize:10, letterSpacing:".1em", textTransform:"uppercase", cursor:"pointer", fontFamily:"sans-serif" }}>👁 Re-preview</button>}
-                    {weavyStatus==="ok" && !showWeavyPanel && <button onClick={() => setShowWeavyPanel(true)} style={{ background:"rgba(80,180,120,.1)", border:"1px solid rgba(80,180,120,.25)", borderRadius:6, color:"rgba(80,180,120,.8)", padding:"6px 12px", fontSize:10, letterSpacing:".1em", textTransform:"uppercase", cursor:"pointer", fontFamily:"sans-serif" }}>💬 Review Thread</button>}
-                    {weavyStatus==="error" && <span style={{ fontSize:10, color:"rgba(220,100,100,.55)", fontFamily:"sans-serif" }}>Weavy post failed</span>}
+                    {!busy && comfyConfigured && <button onClick={() => handleRerender("comfy")} style={{ background:"rgba(130,80,200,.1)", border:"1px solid rgba(130,80,200,.28)", borderRadius:6, color:"rgba(180,130,255,.75)", padding:"6px 12px", fontSize:12, letterSpacing:".1em", textTransform:"uppercase", cursor:"pointer", fontFamily:"sans-serif" }}>🎨 Re-render Comfy</button>}
+                    {!busy && previewAvailable && <button onClick={() => handleRerender("preview")} style={{ background:"transparent", border:"1px solid rgba(200,160,80,.2)", borderRadius:6, color:"rgba(200,160,80,.55)", padding:"6px 12px", fontSize:12, letterSpacing:".1em", textTransform:"uppercase", cursor:"pointer", fontFamily:"sans-serif" }}>👁 Re-preview</button>}
+                    {weavyStatus==="ok" && !showWeavyPanel && <button onClick={() => setShowWeavyPanel(true)} style={{ background:"rgba(80,180,120,.1)", border:"1px solid rgba(80,180,120,.25)", borderRadius:6, color:"rgba(80,180,120,.8)", padding:"6px 12px", fontSize:12, letterSpacing:".1em", textTransform:"uppercase", cursor:"pointer", fontFamily:"sans-serif" }}>💬 Review Thread</button>}
+                    {weavyStatus==="error" && <span style={{ fontSize:12, color:"rgba(220,100,100,.55)", fontFamily:"sans-serif" }}>Weavy post failed</span>}
                   </div>
                 </div>
               </div>
