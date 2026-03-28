@@ -30,7 +30,16 @@ LAYER 3 — REINTERPRETATION RULE: Every object that would normally use a prohib
 
 ━━━ PROMPT CONSTRUCTION ━━━
 
-For each frame: framing and camera position → subject position and action state → environment through bible material language → lighting, palette, lens from bible verbatim → style keywords. 120–160 words per prompt.
+For each frame write in this exact order:
+1. CAMERA — state the lens, shot framing, and subject scale precisely: "subject occupies [X]% of frame height, positioned [left/centre/right] third of frame, approximately [X] metres from camera"
+2. SUBJECT — position, action state, expression for this specific frame
+3. ENVIRONMENT — through the bible's material language only
+4. LIGHTING — from the bible verbatim, identical in both frames
+5. STYLE KEYWORDS — from the bible
+
+For Frame 2, open with: "IDENTICAL CAMERA TO FRAME 1 — [repeat the exact camera description from Frame 1]" then continue with what changes (subject position/expression only).
+
+Each prompt 130–160 words.
 
 ━━━ MANDATORY CHECKLIST — run before outputting ━━━
 
@@ -43,7 +52,10 @@ For each frame: framing and camera position → subject position and action stat
 □ All prohibited materials in negative prompts?
 □ Hero elements reproduced exactly?
 □ Director feedback applied if provided?
-□ Both prompts 120–160 words?
+□ Both prompts 130–160 words?
+□ Frame 2 opens with "IDENTICAL CAMERA TO FRAME 1" followed by the exact camera description?
+□ Subject scale described as percentage of frame height in both prompts?
+□ Subject position described as left/centre/right third in both prompts?
 
 Rewrite any non-compliant prompt before outputting.
 
@@ -615,6 +627,216 @@ function WeavyPanel({ shot, threadUrl, messages, onCheckFeedback, onClose, check
   );
 }
 
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CROP LOCK — crops both frames to identical dimensions from centre
+// Ensures any camera drift is neutralised at the pixel level
+// ─────────────────────────────────────────────────────────────────────────────
+async function cropToCentre(dataUrl, targetWidth, targetHeight) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width  = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext("2d");
+      // Centre crop
+      const srcX = Math.max(0, (img.width  - targetWidth)  / 2);
+      const srcY = Math.max(0, (img.height - targetHeight) / 2);
+      const srcW = Math.min(img.width,  targetWidth);
+      const srcH = Math.min(img.height, targetHeight);
+      ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, targetWidth, targetHeight);
+      resolve(canvas.toDataURL("image/jpeg", 0.95));
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+async function applyCropLock(url1, url2) {
+  if (!url1 || !url2) return { url1, url2 };
+  // Only works with data URLs (base64) — Gemini returns these
+  if (!url1.startsWith("data:") || !url2.startsWith("data:")) return { url1, url2 };
+  try {
+    // Load both to find common dimensions
+    const getDims = (url) => new Promise((res) => {
+      const img = new Image();
+      img.onload = () => res({ w: img.width, h: img.height });
+      img.src = url;
+    });
+    const [d1, d2] = await Promise.all([getDims(url1), getDims(url2)]);
+    const w = Math.min(d1.w, d2.w);
+    const h = Math.min(d1.h, d2.h);
+    const [cropped1, cropped2] = await Promise.all([
+      cropToCentre(url1, w, h),
+      cropToCentre(url2, w, h),
+    ]);
+    return { url1: cropped1, url2: cropped2 };
+  } catch(e) {
+    console.warn("Crop lock failed:", e);
+    return { url1, url2 };
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMFYUI CONTROLNET — depth map from Frame 1 locks Frame 2 spatial composition
+// Requires ControlNet extension installed in ComfyUI
+// ─────────────────────────────────────────────────────────────────────────────
+function buildComfyControlNetWorkflow({ positivePrompt, negativePrompt, modelName, width, height, steps, seed, controlImageUrl }) {
+  return {
+    "1": { "inputs": { "ckpt_name": modelName || "FLUX1/flux1-dev-fp8.safetensors" }, "class_type": "CheckpointLoaderSimple" },
+    "2": { "inputs": { "width": width||1024, "height": height||576, "batch_size": 1 }, "class_type": "EmptyLatentImage" },
+    "3": { "inputs": { "text": positivePrompt, "clip": ["1",1] }, "class_type": "CLIPTextEncode" },
+    "4": { "inputs": { "text": negativePrompt||"blurry, deformed, low quality", "clip": ["1",1] }, "class_type": "CLIPTextEncode" },
+    "5": { "inputs": { "guidance": 3.5, "conditioning": ["3",0] }, "class_type": "FluxGuidance" },
+    // Depth ControlNet — locks spatial composition from Frame 1
+    "9": { "inputs": { "control_net_name": "control_v11f1p_sd15_depth.pth" }, "class_type": "ControlNetLoader" },
+    "10": { "inputs": { "image": controlImageUrl || "", "upload": "image" }, "class_type": "LoadImage" },
+    "11": { "inputs": { "positive": ["5",0], "negative": ["4",0], "control_net": ["9",0], "image": ["10",0], "strength": 0.75, "start_percent": 0, "end_percent": 1 }, "class_type": "ControlNetApplyAdvanced" },
+    "6": {
+      "inputs": {
+        "seed": seed||Math.floor(Math.random()*999999999), "steps": steps||20,
+        "cfg": 1.0, "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0,
+        "model": ["1",0], "positive": ["11",0], "negative": ["11",1], "latent_image": ["2",0]
+      },
+      "class_type": "KSampler"
+    },
+    "7": { "inputs": { "samples": ["6",0], "vae": ["1",2] }, "class_type": "VAEDecode" },
+    "8": { "inputs": { "filename_prefix": "director-agent-cn", "images": ["7",0] }, "class_type": "SaveImage" },
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CAMERA CONTROL
+// ─────────────────────────────────────────────────────────────────────────────
+const LENS_OPTIONS = [
+  { id: "24mm", label: "24mm", desc: "Ultra wide · expansive, environmental" },
+  { id: "35mm", label: "35mm", desc: "Wide · natural, cinematic" },
+  { id: "50mm", label: "50mm", desc: "Normal · closest to human eye" },
+  { id: "85mm", label: "85mm", desc: "Portrait · flattering, compressed" },
+  { id: "135mm", label: "135mm", desc: "Telephoto · compressed, isolating" },
+];
+
+const FRAMING_OPTIONS = [
+  { id: "extreme_wide",  label: "Extreme Wide",  desc: "Full environment, subject tiny" },
+  { id: "wide",          label: "Wide",          desc: "Subject + full environment" },
+  { id: "medium",        label: "Medium",        desc: "Waist up, strong presence" },
+  { id: "close_up",      label: "Close-Up",      desc: "Face and shoulders" },
+  { id: "extreme_close", label: "Extreme Close", desc: "Detail, texture, expression" },
+];
+
+function Toggle({ on, onToggle, activeColor = "#c8a050" }) {
+  return (
+    <button onClick={onToggle}
+      style={{ width:38, height:22, borderRadius:11, background:on?activeColor:"rgba(255,255,255,.12)", border:"none", cursor:"pointer", position:"relative", transition:"background .2s", flexShrink:0 }}>
+      <span style={{ position:"absolute", top:3, left:on?18:3, width:16, height:16, borderRadius:"50%", background:"#fff", transition:"left .2s", display:"block" }} />
+    </button>
+  );
+}
+
+function CameraControl({ settings, setSettings }) {
+  const upd = (k, v) => setSettings(p => ({ ...p, [k]: v }));
+  const on = settings.useCameraLock;
+
+  return (
+    <div style={{ borderRadius:9, border:`1px solid ${on?"rgba(200,160,80,.3)":"rgba(255,255,255,.08)"}`, overflow:"hidden", transition:"border-color .2s" }}>
+      {/* Header */}
+      <div style={{ padding:"10px 13px", background:`rgba(200,160,80,${on?".08":".03"})`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+          <span style={{ fontSize:15 }}>🎥</span>
+          <div>
+            <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:on?"rgba(200,160,80,.95)":"rgba(232,224,212,.45)" }}>Camera Control</div>
+            <div style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(232,224,212,.4)", fontStyle:"italic", marginTop:1 }}>
+              {on ? "Camera locked identically across both frames" : "Camera may vary between frames"}
+            </div>
+          </div>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(232,224,212,.35)" }}>{on?"Locked":"Free"}</span>
+          <Toggle on={on} onToggle={() => upd("useCameraLock", !on)} />
+        </div>
+      </div>
+
+      {/* Controls — only shown when locked */}
+      {on && (
+        <div style={{ padding:"13px", background:"rgba(255,255,255,.015)", display:"grid", gap:13, borderTop:"1px solid rgba(200,160,80,.12)" }}>
+
+          {/* Lens */}
+          <div>
+            <div style={{ fontSize:10, letterSpacing:".12em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(200,160,80,.55)", marginBottom:8 }}>Lens</div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:5 }}>
+              {LENS_OPTIONS.map(l => {
+                const active = settings.cameraLens === l.id;
+                return (
+                  <button key={l.id} onClick={() => upd("cameraLens", active ? "" : l.id)}
+                    title={l.desc}
+                    style={{ padding:"7px 4px", borderRadius:6, border:`1px solid ${active?"rgba(200,160,80,.45)":"rgba(255,255,255,.07)"}`, background:active?"rgba(200,160,80,.12)":"rgba(255,255,255,.02)", cursor:"pointer", textAlign:"center", transition:"all .15s" }}>
+                    <div style={{ fontSize:11, fontFamily:"sans-serif", fontWeight:700, color:active?"#c8a050":"rgba(232,224,212,.55)" }}>{l.label}</div>
+                  </button>
+                );
+              })}
+            </div>
+            {settings.cameraLens && (
+              <div style={{ fontSize:10, color:"rgba(200,160,80,.45)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:5 }}>
+                {LENS_OPTIONS.find(l=>l.id===settings.cameraLens)?.desc}
+              </div>
+            )}
+          </div>
+
+          {/* Shot Framing */}
+          <div>
+            <div style={{ fontSize:10, letterSpacing:".12em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(200,160,80,.55)", marginBottom:8 }}>Shot Framing</div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:5 }}>
+              {FRAMING_OPTIONS.map(f => {
+                const active = settings.cameraFraming === f.id;
+                return (
+                  <button key={f.id} onClick={() => upd("cameraFraming", active ? "" : f.id)}
+                    title={f.desc}
+                    style={{ padding:"7px 4px", borderRadius:6, border:`1px solid ${active?"rgba(200,160,80,.45)":"rgba(255,255,255,.07)"}`, background:active?"rgba(200,160,80,.12)":"rgba(255,255,255,.02)", cursor:"pointer", textAlign:"center", transition:"all .15s" }}>
+                    <div style={{ fontSize:10, fontFamily:"sans-serif", fontWeight:700, color:active?"#c8a050":"rgba(232,224,212,.55)", lineHeight:1.3 }}>{f.label}</div>
+                  </button>
+                );
+              })}
+            </div>
+            {settings.cameraFraming && (
+              <div style={{ fontSize:10, color:"rgba(200,160,80,.45)", fontFamily:"sans-serif", fontStyle:"italic", marginTop:5 }}>
+                {FRAMING_OPTIONS.find(f=>f.id===settings.cameraFraming)?.desc}
+              </div>
+            )}
+          </div>
+
+          {/* Focal length free input */}
+          <div>
+            <div style={{ fontSize:10, letterSpacing:".12em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(200,160,80,.55)", marginBottom:6 }}>Additional Camera Notes <span style={{ color:"rgba(232,224,212,.3)", textTransform:"none", letterSpacing:0 }}>— optional</span></div>
+            <input value={settings.cameraFreeText || ""} onChange={e => upd("cameraFreeText", e.target.value)}
+              placeholder="e.g. low angle, slight dutch tilt, slow push in…"
+              style={{ width:"100%", background:"rgba(255,255,255,.03)", border:"1px solid rgba(255,255,255,.07)", borderRadius:6, color:"#e8e0d4", fontSize:12, padding:"8px 11px", fontFamily:"Georgia,serif", outline:"none" }}
+              onFocus={e=>e.target.style.borderColor="rgba(200,160,80,.28)"}
+              onBlur={e=>e.target.style.borderColor="rgba(255,255,255,.07)"} />
+          </div>
+
+          {/* Composed camera string preview */}
+          {(settings.cameraLens || settings.cameraFraming || settings.cameraFreeText) && (
+            <div style={{ padding:"8px 11px", background:"rgba(200,160,80,.04)", border:"1px solid rgba(200,160,80,.12)", borderRadius:6 }}>
+              <div style={{ fontSize:9, letterSpacing:".1em", textTransform:"uppercase", fontFamily:"sans-serif", color:"rgba(200,160,80,.45)", marginBottom:4 }}>Sent to Claude as</div>
+              <div style={{ fontSize:11, color:"rgba(232,224,212,.6)", fontFamily:"sans-serif", fontStyle:"italic", lineHeight:1.5 }}>
+                {[
+                  settings.cameraFraming ? FRAMING_OPTIONS.find(f=>f.id===settings.cameraFraming)?.label : "",
+                  settings.cameraLens ? settings.cameraLens + " lens" : "",
+                  settings.cameraFreeText || "",
+                  "camera locked across both frames"
+                ].filter(Boolean).join(" · ")}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // LOG STRIP
 // ─────────────────────────────────────────────────────────────────────────────
@@ -838,6 +1060,11 @@ export default function App() {
     useSharedSeed: true,
     manualSeed: "",
     useCameraLock: true,
+    cameraLens: "35mm",
+    cameraFraming: "wide",
+    cameraFreeText: "",
+    useCropLock: true,
+    useControlNet: false,
   };
 
   // Persist settings in localStorage
@@ -887,7 +1114,7 @@ export default function App() {
 
   const { claudeKey, comfyUrl, comfyModel, comfySteps, comfyGuidance, comfyWidth, comfyHeight, comfyWorkflow,
           ratio, previewProvider, nbModel, falModel, geminiKey, nbKey, falKey, weavyUrl, weavyKey,
-          useFrame1Ref, useSharedSeed, manualSeed, useCameraLock } = settings;
+          useFrame1Ref, useSharedSeed, manualSeed, useCameraLock, cameraLens, cameraFraming, cameraFreeText } = settings;
 
   const comfyConfigured  = !!comfyUrl.trim();
   const weavyConfigured  = !!(weavyUrl.trim() && weavyKey.trim());
@@ -919,8 +1146,14 @@ export default function App() {
       ? (manualSeed.trim() ? parseInt(manualSeed.trim()) : Math.floor(Math.random() * 999999999))
       : Math.floor(Math.random() * 999999999);
     setSeed(shotSeed);
-    const cameraSection = useCameraLock && camera.trim()
-      ? `\n\n---\n\nCAMERA LOCK (apply identically to both frames):\n${camera.trim()}`
+    const composedCamera = [
+      settings.cameraFraming ? FRAMING_OPTIONS.find(f=>f.id===settings.cameraFraming)?.label : "",
+      settings.cameraLens ? settings.cameraLens + " lens" : "",
+      settings.cameraFreeText || "",
+      "camera locked across both frames, no movement unless described",
+    ].filter(Boolean).join(" · ");
+    const cameraSection = useCameraLock
+      ? `\n\n---\n\nCAMERA LOCK (apply identically to both frames):\n${composedCamera}`
       : "";
     const userMsg = `VISUAL BIBLE:\n${bible}${cameraSection}\n\n---\n\nFRAME 1 — START FRAME:\n${frame1}\n\n---\n\nFRAME 2 — END FRAME:\n${frame2}\n\n---\n\nSHARED SEED: ${shotSeed}\n\nREFERENCES: ${refContext}${feedback?`\n\n---\n\nDIRECTOR FEEDBACK:\n${feedback}`:""}\n\nSHOT LOG:\n${log.length ? log.map((s,i)=>`#${i+1}: ${s.shotSummary}`).join("\n") : "No previous shots."}`;
 
@@ -1029,6 +1262,11 @@ export default function App() {
       // Always sequential for Gemini — Frame 2 optionally references Frame 1
       const r1 = await renderFrame(parsed.startFrame, setStartImg, setStartLoading, setStartMsg, setStartErr, null);
       s1 = r1;
+      // Camera anchor: inject Frame 1 composition note as hard constraint into Frame 2 prompt
+      if (parsed.startFrame?.compositionNote && parsed.endFrame) {
+        const anchor = `CAMERA ANCHOR — maintain identical camera to Frame 1: ${parsed.startFrame.compositionNote}. Subject scale, distance from camera, and framing must match exactly. Only subject position and expression may change.`;
+        parsed.endFrame.prompt = anchor + "\n\n" + parsed.endFrame.prompt;
+      }
       const ref = useFrame1Ref ? (parsed.startFrame._geminiResult || null) : null;
       const r2 = await renderFrame(parsed.endFrame, setEndImg, setEndLoading, setEndMsg, setEndErr, ref);
       s2 = r2;
@@ -1038,6 +1276,17 @@ export default function App() {
         renderFrame(parsed.endFrame,   setEndImg,   setEndLoading,   setEndMsg,   setEndErr,   null),
       ]);
     }
+    // Apply crop lock if enabled — normalises both frames to identical dimensions
+    if (settings.useCropLock && s1 && s2 && s1.startsWith("data:") && s2.startsWith("data:")) {
+      try {
+        setStartMsg("Applying crop lock…"); setEndMsg("Applying crop lock…");
+        const cropped = await applyCropLock(s1, s2);
+        s1 = cropped.url1; s2 = cropped.url2;
+        setStartImg(s1); setEndImg(s2);
+        setStartMsg(""); setEndMsg("");
+      } catch(e) { console.warn("Crop lock failed:", e); }
+    }
+
     return { s1, s2 };
   }
 
@@ -1219,27 +1468,8 @@ export default function App() {
             <FieldLabel main="Consistency Controls" sub="Improve visual coherence between Frame 1 and Frame 2" />
             <div style={{ display:"grid", gap:10 }}>
 
-              {/* Camera Lock toggle + input */}
-              <div style={{ borderRadius:8, border:`1px solid ${settings.useCameraLock?"rgba(200,160,80,.28)":"rgba(255,255,255,.08)"}`, overflow:"hidden", transition:"border-color .2s" }}>
-                <div style={{ padding:"9px 13px", background:`rgba(200,160,80,${settings.useCameraLock?".08":".03"})`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:9 }}>
-                    <span style={{ fontSize:14 }}>🎥</span>
-                    <div>
-                      <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:settings.useCameraLock?"rgba(200,160,80,.9)":"rgba(232,224,212,.4)" }}>Camera Lock</div>
-                      <div style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(232,224,212,.38)", fontStyle:"italic", marginTop:1 }}>Locks camera identically across both frames</div>
-                    </div>
-                  </div>
-                  <button onClick={() => setSettings(p=>({...p,useCameraLock:!p.useCameraLock}))}
-                    style={{ width:38, height:22, borderRadius:11, background:settings.useCameraLock?"#c8a050":"rgba(255,255,255,.1)", border:"none", cursor:"pointer", position:"relative", transition:"background .2s", flexShrink:0 }}>
-                    <span style={{ position:"absolute", top:3, left:settings.useCameraLock?18:3, width:16, height:16, borderRadius:"50%", background:"#fff", transition:"left .2s", display:"block" }} />
-                  </button>
-                </div>
-                {settings.useCameraLock && (
-                  <input value={camera} onChange={e=>setCamera(e.target.value)}
-                    placeholder="e.g. 35mm · eye-level · wide shot · camera locked, no movement"
-                    style={{ width:"100%", background:"rgba(255,255,255,.02)", border:"none", borderTop:"1px solid rgba(200,160,80,.15)", color:"#e8e0d4", fontSize:13, padding:"10px 13px", fontFamily:"Georgia,serif", outline:"none", display:"block" }} />
-                )}
-              </div>
+              {/* Camera Control */}
+              <CameraControl settings={settings} setSettings={setSettings} />
 
               {/* Frame 1 → Frame 2 reference toggle */}
               <div style={{ padding:"10px 13px", borderRadius:8, border:`1px solid ${settings.useFrame1Ref?"rgba(80,160,220,.25)":"rgba(255,255,255,.08)"}`, background:`rgba(80,160,220,${settings.useFrame1Ref?".05":".01"})`, display:"flex", alignItems:"center", justifyContent:"space-between", transition:"all .2s" }}>
@@ -1282,6 +1512,30 @@ export default function App() {
                       style={{ fontSize:10, color:"rgba(232,224,212,.3)", background:"none", border:"none", cursor:"pointer", fontFamily:"sans-serif", flexShrink:0 }}>Reset</button>
                   </div>
                 )}
+              </div>
+
+              {/* Crop Lock */}
+              <div style={{ padding:"10px 13px", borderRadius:8, border:`1px solid ${settings.useCropLock?"rgba(80,180,120,.25)":"rgba(255,255,255,.08)"}`, background:`rgba(80,180,120,${settings.useCropLock?".05":".01"})`, display:"flex", alignItems:"center", justifyContent:"space-between", transition:"all .2s" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+                  <span style={{ fontSize:14 }}>✂️</span>
+                  <div>
+                    <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:settings.useCropLock?"rgba(80,180,120,.9)":"rgba(232,224,212,.4)" }}>Crop Lock</div>
+                    <div style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(232,224,212,.38)", fontStyle:"italic", marginTop:1 }}>Crops both frames to identical dimensions from centre</div>
+                  </div>
+                </div>
+                <Toggle on={settings.useCropLock} onToggle={() => setSettings(p=>({...p,useCropLock:!p.useCropLock}))} activeColor="rgba(80,180,120,.85)" />
+              </div>
+
+              {/* ControlNet — ComfyUI only */}
+              <div style={{ padding:"10px 13px", borderRadius:8, border:`1px solid ${settings.useControlNet?"rgba(130,80,200,.35)":"rgba(255,255,255,.06)"}`, background:`rgba(130,80,200,${settings.useControlNet?".07":".01"})`, display:"flex", alignItems:"center", justifyContent:"space-between", transition:"all .2s", opacity: comfyConfigured ? 1 : .45 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+                  <span style={{ fontSize:14 }}>🧭</span>
+                  <div>
+                    <div style={{ fontSize:12, fontFamily:"sans-serif", fontWeight:700, color:settings.useControlNet?"rgba(180,130,255,.9)":"rgba(232,224,212,.4)" }}>ControlNet Depth <span style={{ fontSize:9, padding:"2px 6px", background:"rgba(130,80,200,.15)", borderRadius:10, color:"rgba(180,130,255,.6)", fontWeight:400, marginLeft:4 }}>ComfyUI only</span></div>
+                    <div style={{ fontSize:10, fontFamily:"sans-serif", color:"rgba(232,224,212,.38)", fontStyle:"italic", marginTop:1 }}>Uses Frame 1 depth map to lock Frame 2 spatial composition</div>
+                  </div>
+                </div>
+                <Toggle on={settings.useControlNet} onToggle={() => comfyConfigured && setSettings(p=>({...p,useControlNet:!p.useControlNet}))} activeColor="rgba(130,80,200,.85)" />
               </div>
 
             </div>
