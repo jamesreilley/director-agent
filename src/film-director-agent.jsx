@@ -1556,6 +1556,49 @@ export default function App() {
 
   const [version, setVersion] = useState(1);
 
+  function exportComfyWorkflow() {
+    if (!shot) return;
+    const startPrompt = (shot.startFrame && shot.startFrame.prompt) || "";
+    const endPrompt   = (shot.endFrame   && shot.endFrame.prompt)   || "";
+    const startNeg    = (shot.startFrame && shot.startFrame.negativePrompt) || "blurry, deformed, low quality";
+    const endNeg      = (shot.endFrame   && shot.endFrame.negativePrompt)   || "blurry, deformed, low quality";
+    const s = Math.floor(Math.random() * 999999999);
+    const slug = shot.sceneSlug || "shot";
+
+    // GGUF-based Flux workflow — works natively on Mac MPS
+    // Uses UnetLoaderGGUF + dual CLIPLoader + FluxGuidance + KSampler
+    const wf = {
+      "1":  { inputs: { unet_name: "flux1-dev-Q8_0.gguf" }, class_type: "UnetLoaderGGUF", _meta: { title: "Load GGUF Model" } },
+      "2":  { inputs: { clip_name1: "t5xxl_fp16.safetensors", clip_name2: "clip_l.safetensors", type: "flux", device: "default" }, class_type: "DualCLIPLoader", _meta: { title: "Load CLIP" } },
+      "3":  { inputs: { vae_name: "ae.safetensors" }, class_type: "VAELoader", _meta: { title: "Load VAE" } },
+
+      "10": { inputs: { width: settings.comfyWidth||1024, height: settings.comfyHeight||576, batch_size: 1 }, class_type: "EmptyLatentImage", _meta: { title: "Frame 1 — Latent" } },
+      "11": { inputs: { text: startPrompt, clip: ["2", 0] }, class_type: "CLIPTextEncode", _meta: { title: "Frame 1 — Positive" } },
+      "12": { inputs: { text: startNeg, clip: ["2", 0] }, class_type: "CLIPTextEncode", _meta: { title: "Frame 1 — Negative" } },
+      "13": { inputs: { guidance: settings.comfyGuidance||3.5, conditioning: ["11", 0] }, class_type: "FluxGuidance", _meta: { title: "Frame 1 — FluxGuidance" } },
+      "14": { inputs: { seed: s, steps: settings.comfySteps||20, cfg: 1.0, sampler_name: "euler", scheduler: "simple", denoise: 1.0, model: ["1", 0], positive: ["13", 0], negative: ["12", 0], latent_image: ["10", 0] }, class_type: "KSampler", _meta: { title: "Frame 1 — KSampler" } },
+      "15": { inputs: { samples: ["14", 0], vae: ["3", 0] }, class_type: "VAEDecode", _meta: { title: "Frame 1 — VAE Decode" } },
+      "16": { inputs: { filename_prefix: slug + "-frame1", images: ["15", 0] }, class_type: "SaveImage", _meta: { title: "Save Frame 1" } },
+
+      "20": { inputs: { width: settings.comfyWidth||1024, height: settings.comfyHeight||576, batch_size: 1 }, class_type: "EmptyLatentImage", _meta: { title: "Frame 2 — Latent" } },
+      "21": { inputs: { text: endPrompt, clip: ["2", 0] }, class_type: "CLIPTextEncode", _meta: { title: "Frame 2 — Positive" } },
+      "22": { inputs: { text: endNeg, clip: ["2", 0] }, class_type: "CLIPTextEncode", _meta: { title: "Frame 2 — Negative" } },
+      "23": { inputs: { guidance: settings.comfyGuidance||3.5, conditioning: ["21", 0] }, class_type: "FluxGuidance", _meta: { title: "Frame 2 — FluxGuidance" } },
+      "24": { inputs: { seed: s, steps: settings.comfySteps||20, cfg: 1.0, sampler_name: "euler", scheduler: "simple", denoise: 1.0, model: ["1", 0], positive: ["23", 0], negative: ["22", 0], latent_image: ["20", 0] }, class_type: "KSampler", _meta: { title: "Frame 2 — KSampler" } },
+      "25": { inputs: { samples: ["24", 0], vae: ["3", 0] }, class_type: "VAEDecode", _meta: { title: "Frame 2 — VAE Decode" } },
+      "26": { inputs: { filename_prefix: slug + "-frame2", images: ["25", 0] }, class_type: "SaveImage", _meta: { title: "Save Frame 2" } },
+    };
+
+    const json = JSON.stringify(wf, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = slug + "-workflow.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleGenerate(mode) {
     if (!canGenerate) return;
     const ver = 1;
@@ -1715,11 +1758,14 @@ export default function App() {
             <RefZone refs={refs} onAdd={handleAddRef} onRemove={handleRemoveRef} />
           </div>
           <div style={{ display:"grid", gap:9 }}>
-            <button onClick={() => handleGenerate("comfy")} disabled={!canGenerate || !comfyConfigured}
-              style={{ width:"100%", padding:"14px", borderRadius:8, border:"1px solid " + (canGenerate&&comfyConfigured?"rgba(130,80,200,.5)":"rgba(255,255,255,.06)"), background:canGenerate&&comfyConfigured?"rgba(130,80,200,.15)":"rgba(255,255,255,.018)", color:canGenerate&&comfyConfigured?"rgba(180,130,255,.95)":"rgba(232,224,212,.18)", fontSize:12, letterSpacing:".16em", textTransform:"uppercase", fontFamily:"sans-serif", fontWeight:700, cursor:canGenerate&&comfyConfigured?"pointer":"not-allowed", transition:"all .25s", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
-              {busy && activeMode==="comfy" ? <><Spin />Rendering in ComfyUI…</> : "🎨 Generate via ComfyUI"}
+            {/* Export workflow — generate prompts first via Quick Preview, then export */}
+            <button onClick={shot ? exportComfyWorkflow : () => handleGenerate("preview")} disabled={busy}
+              style={{ width:"100%", padding:"14px", borderRadius:8, border:"1px solid " + (!busy?"rgba(130,80,200,.5)":"rgba(255,255,255,.06)"), background:!busy?"rgba(130,80,200,.15)":"rgba(255,255,255,.018)", color:!busy?"rgba(180,130,255,.95)":"rgba(232,224,212,.18)", fontSize:12, letterSpacing:".16em", textTransform:"uppercase", fontFamily:"sans-serif", fontWeight:700, cursor:!busy?"pointer":"not-allowed", transition:"all .25s", display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+              {busy ? <><Spin />Writing prompts…</> : shot ? "🎨 Export ComfyUI Workflow" : "🎨 Build + Export ComfyUI Workflow"}
             </button>
-            {!comfyConfigured && <p style={{ fontSize:10, color:"rgba(180,130,255,.4)", fontFamily:"sans-serif", textAlign:"center", marginTop:-4, fontStyle:"italic" }}>Add ComfyUI server URL in Settings</p>}
+            <p style={{ fontSize:10, color:"rgba(180,130,255,.5)", fontFamily:"sans-serif", textAlign:"center", marginTop:-4, fontStyle:"italic" }}>
+              {shot ? "Downloads a ready-to-run workflow JSON — drag into ComfyUI Desktop" : "Generates prompts then exports workflow JSON for ComfyUI Desktop"}
+            </p>
             <button onClick={() => handleGenerate("preview")} disabled={!canGenerate || !previewAvailable}
               style={{ width:"100%", padding:"12px", borderRadius:8, border:"1px solid " + (canGenerate&&previewAvailable?"rgba(200,160,80,.38)":"rgba(255,255,255,.05)"), background:canGenerate&&previewAvailable?"rgba(200,160,80,.1)":"rgba(255,255,255,.012)", color:canGenerate&&previewAvailable?"rgba(200,160,80,.85)":"rgba(232,224,212,.15)", fontSize:12, letterSpacing:".14em", textTransform:"uppercase", fontFamily:"sans-serif", fontWeight:700, cursor:canGenerate&&previewAvailable?"pointer":"not-allowed", transition:"all .25s", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
               {busy && activeMode==="preview" ? <><Spin />Generating preview…</> : "👁 Quick Preview — " + providerLabel}
@@ -1778,6 +1824,7 @@ export default function App() {
                   <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
                     {!busy && comfyConfigured && <button onClick={() => handleRerender("comfy")} style={{ background:"rgba(130,80,200,.1)", border:"1px solid rgba(130,80,200,.28)", borderRadius:6, color:"rgba(180,130,255,.75)", padding:"6px 12px", fontSize:11, letterSpacing:".1em", textTransform:"uppercase", cursor:"pointer", fontFamily:"sans-serif" }}>🎨 Re-render Comfy</button>}
                     {!busy && previewAvailable && <button onClick={() => handleRerender("preview")} style={{ background:"transparent", border:"1px solid rgba(200,160,80,.2)", borderRadius:6, color:"rgba(200,160,80,.55)", padding:"6px 12px", fontSize:11, letterSpacing:".1em", textTransform:"uppercase", cursor:"pointer", fontFamily:"sans-serif" }}>👁 Re-preview</button>}
+                    {!busy && shot && <button onClick={exportComfyWorkflow} style={{ background:"rgba(130,80,200,.1)", border:"1px solid rgba(130,80,200,.28)", borderRadius:6, color:"rgba(180,130,255,.75)", padding:"6px 12px", fontSize:11, letterSpacing:".1em", textTransform:"uppercase", cursor:"pointer", fontFamily:"sans-serif" }}>🎨 Export Workflow</button>}
                     {weavyStatus==="ok" && !showWeavyPanel && <button onClick={() => setShowWeavyPanel(true)} style={{ background:"rgba(80,180,120,.1)", border:"1px solid rgba(80,180,120,.25)", borderRadius:6, color:"rgba(80,180,120,.8)", padding:"6px 12px", fontSize:11, letterSpacing:".1em", textTransform:"uppercase", cursor:"pointer", fontFamily:"sans-serif" }}>💬 Review Thread</button>}
                     {weavyStatus==="error" && <span style={{ fontSize:11, color:"rgba(220,100,100,.55)", fontFamily:"sans-serif" }}>Weavy post failed</span>}
                     {!busy && shot && endImg && (
